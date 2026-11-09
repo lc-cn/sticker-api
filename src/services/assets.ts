@@ -9,7 +9,7 @@ import {
 import type { ValidatedImage } from '../domain/image.js';
 import type { GitHubRepoClient } from '../github/client.js';
 import {
-  assertSchema, candidateUrls, cmp, eventPath, hashShard, INDEX_PATHS, licensePath, manifestPath, normalizeText,
+  assertSchema, candidateUrls, cmp, eventPath, hashShard, INDEX_PATHS, licensePath, manifestPath, normalizeText, pretty,
   PLAN_STATUS, PlanError, planArchive, planCreate, planTombstone, planUpdate, queryTerms, referenceSearch, registry, termShard,
   type AssetRecord, type Catalog, type Changes, type DocSummary, type EventRecord, type Limits, type ManifestShard, type MirrorsConfig, type PlanCtx,
 } from '../repo/contract.js';
@@ -27,10 +27,27 @@ export type Receipt = {
   asset: PublicAsset;
 };
 
+export type BatchItemResult =
+  | { index: number; status: 'created' | 'duplicate'; asset: PublicAsset }
+  | { index: number; status: 'error'; error: { code: string; message: string } };
+
+export type BatchReceipt = {
+  operationId: string | null;
+  commit: string;
+  status: 'created' | 'replayed' | 'unchanged';
+  replayedType?: string;
+  summary: { created: number; duplicate: number; error: number; addedBytes: number };
+  items: BatchItemResult[];
+};
+
 const nowUtc = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 const ID_RE = /^(?:sha256:)?([0-9a-f]{64})$/;
 /** A indexes/docs keys use the first 12 hex of sha256 (DOC_KEY_LENGTH). At maxAssets=3000 this is unique in practice. */
 export const SHORT_ID_LEN = 12;
+/** Max stickers per POST /v1/assets/batch (one GitHub commit). Keep modest for Vercel 30s + 4.5MiB body. */
+export const BATCH_MAX_ITEMS = 20;
+/** Max sum of image bytes in one batch (metadata extra; whole multipart ≤ MAX_MULTIPART_BYTES). */
+export const BATCH_MAX_BYTES = 3 * 1024 * 1024;
 const SHORT_RE = /^([0-9a-f]{8,64})$/;
 const EXT_BY_MIME: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' };
 const MIME_BY_EXT: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' };
@@ -564,5 +581,262 @@ export class AssetService {
       );
       return { kind: 'change', status: 'tombstoned', after: r.after, changes: r.changes, seen };
     });
+  }
+
+  /**
+   * Create many assets in ONE GitHub commit (event type import.batch).
+   * Cap: BATCH_MAX_ITEMS / BATCH_MAX_BYTES. Partial success is explicit per item;
+   * daily/capacity errors stop further creates but still commit what already planned.
+   */
+  async createBatch(
+    principal: Principal,
+    items: Array<{ img: ValidatedImage; metadata: Record<string, unknown> }>,
+    idemKey: string,
+  ): Promise<{ receipt: BatchReceipt; created: boolean }> {
+    if (items.length < 1) throw new AppError(400, 'empty_batch', 'batch requires at least one file');
+    if (items.length > BATCH_MAX_ITEMS) {
+      throw new AppError(400, 'batch_too_large', `At most ${BATCH_MAX_ITEMS} assets per batch (one commit; Vercel body/time limits)`);
+    }
+    const totalBytes = items.reduce((n, it) => n + it.img.bytes.length, 0);
+    if (totalBytes > BATCH_MAX_BYTES) {
+      throw new AppError(413, 'payload_too_large', `Batch images total must be ≤ ${BATCH_MAX_BYTES} bytes`);
+    }
+
+    const publisher = this.writable();
+    const keys = this.config.idempotencyKeys;
+    const scope = principalScope(principal);
+    const current = keys[0]!;
+    const opId = operationIdFor(current, scope, idemKey);
+    const fpPayload = {
+      items: items.map((it) => ({
+        sha: createHash('sha256').update(it.img.bytes).digest('hex'),
+        metadata: it.metadata,
+      })),
+    };
+    const canonical = canonicalJson({ type: 'import.batch', ...fpPayload });
+    const isAdmin = principal.kind === 'admin';
+
+    type Built = {
+      commitFiles: Map<string, Buffer | null>;
+      itemResults: BatchItemResult[];
+      summary: { created: number; duplicate: number; error: number; addedBytes: number };
+      noopOnly: boolean;
+    };
+
+    const out = await publisher.publish<{ built: Built; replay?: BatchReceipt }>(async (snap) => {
+      const mirrors = await this.mirrors(snap);
+      for (const k of keys) {
+        const id = operationIdFor(k, scope, idemKey);
+        const ev = await snap.json<EventRecord>(eventPath(id));
+        if (!ev) continue;
+        if (ev.requestFingerprint?.hmac !== fingerprint(k, canonical)) {
+          throw new AppError(409, 'idempotency_conflict', 'Idempotency-Key was already used with a different request', { retryable: false });
+        }
+        const itemsOut: BatchItemResult[] = [];
+        for (let i = 0; i < ev.assets.length; i++) {
+          const ref = ev.assets[i]!;
+          const rec = await this.record(snap, ref.id.slice(7));
+          if (!rec) throw new AppError(503, 'repo_corrupt', 'Batch event references a missing asset');
+          itemsOut.push({ index: i, status: 'duplicate', asset: this.publicAsset(rec, snap.commit, mirrors) });
+        }
+        // Replay: treat as duplicate/replay of prior batch (assets already exist)
+        const receipt: BatchReceipt = {
+          operationId: id,
+          commit: snap.commit,
+          status: 'replayed',
+          replayedType: ev.type,
+          summary: {
+            created: 0,
+            duplicate: itemsOut.length,
+            error: 0,
+            addedBytes: typeof ev.summary.addedBytes === 'number' ? ev.summary.addedBytes : 0,
+          },
+          items: itemsOut.map((it) =>
+            it.status === 'error' ? it : { index: it.index, status: 'duplicate' as const, asset: it.asset },
+          ),
+        };
+        return { kind: 'noop', result: { built: { commitFiles: new Map(), itemResults: [], summary: receipt.summary, noopOnly: true }, replay: receipt } };
+      }
+
+      const op: OpCtx = {
+        operationId: opId,
+        at: nowUtc(),
+        actorKind: principal.kind,
+        idempotency: { keyId: current.keyId, keyHmac: keyHmac(current, scope, idemKey) },
+        requestFingerprint: { keyId: current.keyId, hmac: fingerprint(current, canonical) },
+      };
+      const ctx = await this.planCtx(snap);
+      const taxonomy = await this.taxonomy(snap);
+      const limits = await this.limits(snap);
+
+      const { value: built, seen } = await withSyncRead(snap, (baseRead) => {
+        const overlay = new Map<string, Buffer | string | null>();
+        const oread = (path: string): string | undefined => {
+          if (overlay.has(path)) {
+            const v = overlay.get(path);
+            if (v === null || v === undefined) return undefined;
+            return typeof v === 'string' ? v : v.toString('utf8');
+          }
+          return baseRead(path);
+        };
+        const itemResults: BatchItemResult[] = [];
+        const summary = { created: 0, duplicate: 0, error: 0, addedBytes: 0 };
+        let stop = false;
+        for (let i = 0; i < items.length; i++) {
+          const it = items[i]!;
+          if (stop) {
+            itemResults.push({ index: i, status: 'error', error: { code: 'batch_aborted', message: 'Earlier item hit daily/capacity limit; not attempted' } });
+            summary.error++;
+            continue;
+          }
+          try {
+            const existing = (() => {
+              const sha = createHash('sha256').update(it.img.bytes).digest('hex');
+              const raw = oread(`manifests/${sha.slice(0, 2)}.json`);
+              if (!raw) return null;
+              const shard = JSON.parse(raw) as ManifestShard;
+              return shard.assets.find((a) => a.id === `sha256:${sha}`) ?? null;
+            })();
+            if (existing?.status === 'tombstoned') {
+              itemResults.push({ index: i, status: 'error', error: { code: 'asset_tombstoned', message: 'This image was removed and cannot be re-uploaded' } });
+              summary.error++;
+              continue;
+            }
+            if (existing) {
+              itemResults.push({ index: i, status: 'duplicate', asset: this.publicAsset(existing, snap.commit, null) });
+              summary.duplicate++;
+              continue;
+            }
+            const meta = parseCreateMetadata(it.metadata, taxonomy, isAdmin);
+            const { rightsIn, ...m } = meta;
+            // license must exist on base or overlay
+            const licRaw = oread(licensePath(rightsIn.licenseId));
+            if (!licRaw) throw new PlanError('unknown_license', `licenses/${rightsIn.licenseId}.json does not exist in A`);
+            const lic = JSON.parse(licRaw) as { kind: string };
+            if (lic.kind !== rightsIn.basis) {
+              throw new AppError(422, 'license_mismatch', `rights.basis must equal license kind (${lic.kind})`);
+            }
+            const r = planCreate(
+              oread,
+              {
+                ...op,
+                bytes: it.img.bytes,
+                uploadedAt: op.at,
+                meta: { ...m, rights: { ...rightsIn, reviewedAt: op.at } },
+              },
+              ctx,
+            );
+            if (r.kind === 'duplicate') {
+              itemResults.push({ index: i, status: 'duplicate', asset: this.publicAsset(r.asset, snap.commit, null) });
+              summary.duplicate++;
+              continue;
+            }
+            assertSchema('asset', r.asset);
+            for (const [path, c] of r.changes!) {
+              overlay.set(path, c);
+            }
+            itemResults.push({ index: i, status: 'created', asset: this.publicAsset(r.asset, '0'.repeat(40), null) });
+            summary.created++;
+            summary.addedBytes += it.img.bytes.length;
+          } catch (e) {
+            if (e instanceof AppError) {
+              itemResults.push({ index: i, status: 'error', error: { code: e.code, message: e.message } });
+              summary.error++;
+              if (e.code === 'daily_budget_exceeded' || e.code === 'capacity_exceeded') stop = true;
+              continue;
+            }
+            if (e instanceof PlanError) {
+              const code = e.code === 'tombstoned' ? 'asset_tombstoned' : e.code;
+              itemResults.push({ index: i, status: 'error', error: { code, message: e.message } });
+              summary.error++;
+              if (e.code === 'daily_budget_exceeded' || e.code === 'capacity_exceeded') stop = true;
+              continue;
+            }
+            throw e;
+          }
+        }
+
+        if (summary.created === 0) {
+          return { commitFiles: new Map<string, Buffer | null>(), itemResults, summary, noopOnly: true };
+        }
+
+        // Replace per-item asset.create event (same path overwritten N times) with one import.batch event.
+        const createdAssets: Array<{ id: string; revision: number }> = [];
+        for (const x of itemResults) {
+          if (x.status === 'created') createdAssets.push({ id: x.asset.id, revision: x.asset.revision });
+        }
+        const ev: EventRecord = {
+          schemaVersion: 1,
+          operationId: opId,
+          type: 'import.batch',
+          occurredAt: op.at,
+          actorKind: op.actorKind,
+          idempotency: op.idempotency,
+          requestFingerprint: op.requestFingerprint,
+          assets: createdAssets,
+          summary: { added: summary.created, addedBytes: summary.addedBytes },
+        };
+        assertSchema('event', ev);
+        overlay.set(eventPath(opId), pretty(ev));
+
+        const commitFiles = new Map<string, Buffer | null>();
+        for (const [path, c] of overlay) {
+          if (c === null) {
+            commitFiles.set(path, null);
+            continue;
+          }
+          const buf = Buffer.isBuffer(c) ? c : Buffer.from(c);
+          if (path.startsWith('indexes/') || path.startsWith('manifests/')) {
+            const max = path === INDEX_PATHS.catalog ? limits.maxCatalogBytes : limits.maxShardBytes;
+            if (buf.length > max) throw new AppError(507, 'index_full', `${path} would exceed its size budget`);
+          }
+          commitFiles.set(path, buf);
+        }
+        return { commitFiles, itemResults, summary, noopOnly: false };
+      });
+
+      void seen;
+      if (built.noopOnly) {
+        return { kind: 'noop', result: { built } };
+      }
+      return {
+        kind: 'commit',
+        files: built.commitFiles,
+        message: `sticker: import.batch +${built.summary.created}\n\nSticker-Operation: ${opId}\n`,
+        result: { built },
+      };
+    });
+
+    if (out.result.replay) {
+      return { receipt: { ...out.result.replay, commit: out.commit ?? out.result.replay.commit }, created: false };
+    }
+    const built = out.result.built;
+    const commit = out.commit ?? (await this.head!.get());
+    const mirrors = await this.mirrors(await this.snapshot());
+    const snap = await this.snapshot();
+    const itemsOut: BatchItemResult[] = [];
+    for (const it of built.itemResults) {
+      if (it.status === 'error') {
+        itemsOut.push(it);
+        continue;
+      }
+      const sha = it.asset.object.sha256;
+      const rec = await this.record(snap, sha);
+      itemsOut.push({
+        index: it.index,
+        status: it.status,
+        asset: this.publicAsset(rec ?? (it.asset as unknown as AssetRecord), snap.commit, mirrors),
+      });
+    }
+    return {
+      receipt: {
+        operationId: built.summary.created || built.summary.duplicate ? opId : null,
+        commit,
+        status: built.summary.created ? 'created' : 'unchanged',
+        summary: built.summary,
+        items: itemsOut,
+      },
+      created: built.summary.created > 0,
+    };
   }
 }

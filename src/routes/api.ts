@@ -8,6 +8,7 @@ import { validateImage } from '../domain/image.js';
 import { parseIfMatch, parseJsonObject } from '../domain/metadata.js';
 import { parseMultipart, type MultipartBody } from '../http/multipart.js';
 import type { AssetService, Receipt } from '../services/assets.js';
+import { BATCH_MAX_BYTES, BATCH_MAX_ITEMS } from '../services/assets.js';
 import { RENDER_IMAGE_MAX, RENDER_IMAGES_TOTAL_MAX, type RenderCaller, type RenderService } from '../services/renders.js';
 import type { CollectService } from '../services/collect.js';
 import { parseCookies, SESSION_COOKIE } from '../auth/cookies.js';
@@ -118,6 +119,48 @@ export async function registerApiRoutes(
     const img = validateImage(file.bytes);
     const { receipt, created } = await assets.create(principal, img, meta, idem);
     return reply.code(receiptStatus(receipt, created)).send(receipt);
+  });
+
+  /**
+   * Batch upload: many stickers → one GitHub commit (event import.batch).
+   * Cap BATCH_MAX_ITEMS / BATCH_MAX_BYTES; whole multipart ≤4 MiB (Vercel).
+   * Multipart: metadata = JSON array (same order as file parts), repeated field name "file".
+   * Partial failure is per-item; daily/capacity stop further creates but still commit successes.
+   */
+  app.post('/v1/assets/batch', async (req, reply) => {
+    noStore(reply);
+    const principal = requirePrincipal(req, config, keys, 'assets:write');
+    const idem = readIdempotencyKey(req.headers['idempotency-key'], true)!;
+    const mp = await multipart(req, {
+      maxFiles: BATCH_MAX_ITEMS,
+      maxFileBytes: UPLOAD_MAX,
+      maxTotalFileBytes: BATCH_MAX_BYTES,
+      allowedFileFields: ['file'],
+    });
+    if ((mp.fields.metadata?.length ?? 0) !== 1) {
+      throw new AppError(400, 'invalid_metadata', 'exactly one "metadata" JSON array field is required');
+    }
+    let metas: unknown;
+    try {
+      metas = JSON.parse(mp.fields.metadata![0]!);
+    } catch {
+      throw new AppError(400, 'invalid_metadata', 'metadata must be JSON');
+    }
+    if (!Array.isArray(metas)) throw new AppError(400, 'invalid_metadata', 'metadata must be a JSON array');
+    if (metas.length !== mp.files.length) {
+      throw new AppError(400, 'invalid_metadata', `metadata length (${metas.length}) must match file count (${mp.files.length})`);
+    }
+    if (mp.files.length < 1) throw new AppError(400, 'empty_batch', 'batch requires at least one file');
+    const items = mp.files.map((f, i) => {
+      const meta = metas[i];
+      if (!meta || typeof meta !== 'object' || Array.isArray(meta)) {
+        throw new AppError(400, 'invalid_metadata', `metadata[${i}] must be an object`);
+      }
+      return { img: validateImage(f.bytes), metadata: meta as Record<string, unknown> };
+    });
+    const { receipt, created } = await assets.createBatch(principal, items, idem);
+    const code = receipt.status === 'created' ? 201 : 200;
+    return reply.code(created || receipt.status === 'created' ? 201 : code).send(receipt);
   });
 
   app.patch('/v1/assets/:id', async (req, reply) => {

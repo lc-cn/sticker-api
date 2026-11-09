@@ -81,7 +81,38 @@ paths:
         "428": { $ref: "#/components/responses/Err" }
         "429": { description: daily_budget_exceeded }
         "503": { description: "state_unverifiable | upstream_rate_limited (Retry-After) | writes_disabled" }
+  /v1/assets/batch:
+    post:
+      summary: Batch upload (many files → one GitHub commit)
+      description: |
+        Multipart field `metadata` = JSON array of per-asset metadata objects (same order as `file` parts).
+        Repeated multipart field name `file`. Caps: 20 items / 3 MiB image bytes / 4 MiB whole body
+        (Vercel serverless limit). One Idempotency-Key covers the whole batch. Event type `import.batch`.
+        Per-item results may mix created|duplicate|error; daily/capacity errors abort remaining items
+        but still commit successes.
+      security: [{ bearerAuth: [] }, { cookieAuth: [] }]
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string, minLength: 16, maxLength: 128, pattern: '^[A-Za-z0-9_-]+$' }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [metadata, file]
+              properties:
+                metadata: { type: string, description: JSON array of metadata objects }
+                file: { type: array, items: { type: string, format: binary } }
+      responses:
+        '201': { description: At least one asset created }
+        '200': { description: Replay or all duplicates/unchanged }
+        '400': { description: Invalid batch shape }
+        '413': { description: Payload too large }
   /v1/assets/{id}:
+
     parameters: [{ $ref: "#/components/parameters/AssetId" }]
     get: { summary: Detail (public), responses: { "200": { description: "{commit, asset}" }, "404": { $ref: "#/components/responses/Err" }, "410": { $ref: "#/components/responses/Err" } } }
     patch:

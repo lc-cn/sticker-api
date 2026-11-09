@@ -3,10 +3,10 @@ import type { Readable } from 'node:stream';
 import { Busboy } from '@fastify/busboy';
 import { AppError } from '../errors.js';
 
-/** Plan §5: whole multipart request ≤3 MiB, counted on actual bytes (Content-Length is not trusted). */
-export const MAX_MULTIPART_BYTES = 3 * 1024 * 1024;
-/** text/metadata fields total ≤16 KiB */
-export const MAX_FIELDS_BYTES = 16 * 1024;
+/** Whole multipart request cap (Vercel serverless body ≈4.5 MiB; stay under). Counted on actual bytes. */
+export const MAX_MULTIPART_BYTES = 4 * 1024 * 1024;
+/** text/metadata fields total — raised for POST /v1/assets/batch metadata arrays */
+export const MAX_FIELDS_BYTES = 96 * 1024;
 
 export type MultipartFile = { field: string; bytes: Buffer; declaredType: string };
 export type MultipartBody = { kind: 'multipart'; files: MultipartFile[]; fields: Record<string, string[]> };

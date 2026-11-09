@@ -5,7 +5,7 @@
   "outputDirectory": "public",
   "functions": {
     "api/index.js": {
-      "maxDuration": 30,
+      "maxDuration": 120,
       "includeFiles": "{dist/**,fonts/**,web/**,public/assets/**,openapi.yaml}"
     }
   },

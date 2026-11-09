@@ -1,0 +1,312 @@
+.env.example
+  h_b64ebe5d3c7815 1-2,4-6,8-17,19-24,26-67
+README.md
+  h_b64ebe5d3c7815 1,3-4,6-7,9,12-24,27,29-34,36-42,44-45,47,50,52-56,59,61
+api/index.js
+  h_b64ebe5d3c7815 1-2
+fonts/README.md
+  h_b64ebe5d3c7815 1-6
+openapi.yaml
+  h_b64ebe5d3c7815 3-5,7-41,43-45,47,49-55,57-59,65,67-68,70-84,86-112,115-118,120-133
+package.json
+  h_b64ebe5d3c7815 6,12-13,15-17,20-21
+pnpm-lock.yaml
+  h_b64ebe5d3c7815 11-16,57-60,245-246
+public/.gitkeep
+  h_b64ebe5d3c7815 1
+scripts/copy-vendor-data.mjs
+  h_b64ebe5d3c7815 1,3-5
+scripts/new-machine-token.mjs
+  h_b64ebe5d3c7815 1-9
+scripts/smoke.ts
+  h_b64ebe5d3c7815 1-5,7-11,13-45,47-57,59-92,94-95
+scripts/vendor-assets-contract.mjs
+  h_b64ebe5d3c7815 1-51
+src/app.ts
+  h_b64ebe5d3c7815 1-3,6-17,19-21,24,27-29,32-42,45-59,61-64,67-69,71-88,92-94
+src/auth/cookies.ts
+  h_b64ebe5d3c7815 1-24
+src/auth/crypto.ts
+  h_b64ebe5d3c7815 1,3-7,17-66
+src/auth/principal.ts
+  h_b64ebe5d3c7815 1-3,5-6,8-10,12,14,16-17,19-20,23-24,27-31,34-43,46-59,61-70,72-74,76-79,81-83
+src/config.ts
+  h_b64ebe5d3c7815 1-24,26-53,55-83,85-90,93-97,99-109,112-144,147-178,180-189,192-211,213-220,222-230,233-235,237-260
+src/domain/idempotency.ts
+  h_b64ebe5d3c7815 1-41
+src/domain/image.ts
+  h_b64ebe5d3c7815 1-293
+src/domain/metadata.ts
+  h_b64ebe5d3c7815 1-203
+src/errors.ts
+  h_b64ebe5d3c7815 4,6,8-13,18-20,27-29
+src/github/app-token.ts
+  h_b64ebe5d3c7815 1-70
+src/github/client.ts
+  h_b64ebe5d3c7815 1-160
+src/http/multipart.ts
+  h_b64ebe5d3c7815 1-95
+src/render/renderer.ts
+  h_b64ebe5d3c7815 1-182
+src/render/worker.ts
+  h_b64ebe5d3c7815 1-21
+src/repo/contract.ts
+  h_b64ebe5d3c7815 1-160
+src/repo/head.ts
+  h_b64ebe5d3c7815 3-10,12-17,19-21,23-26,28-34,38-40
+src/repo/publisher.ts
+  h_b64ebe5d3c7815 1-73
+src/repo/snapshot.ts
+  h_b64ebe5d3c7815 3-26,31-40,43-46,49-50,53-60,62-69,72,75-77,79-81,85-96
+src/repo/sync-read.ts
+  h_b64ebe5d3c7815 1,3-5,7-14,16-24,27
+src/routes/api.ts
+  h_b64ebe5d3c7815 1-169
+src/routes/auth.ts
+  h_b64ebe5d3c7815 1-3,5-7,9-11,13-14,17,19,21-22,24-27,29-62,65-84,86-115,117-120,122-130,132-136,139-148,151-155
+src/server.ts
+  h_b64ebe5d3c7815 1,3,5-10
+src/services/assets.ts
+  h_b64ebe5d3c7815 1-483
+src/services/renders.ts
+  h_b64ebe5d3c7815 1-149
+src/vercel.ts
+  h_b64ebe5d3c7815 1-5,7-8,10,12-26,29-31
+tests/assets.test.ts
+  h_b64ebe5d3c7815 1-343
+tests/auth.test.ts
+  h_b64ebe5d3c7815 3-4,6-7,9-19,25-26,28-54,60-61,63-85,91-92,94-127,133-135,137-139,141-142,144,147,149,151-153,155
+tests/fake-github.ts
+  h_b64ebe5d3c7815 1-298
+tests/fixtures.ts
+  h_b64ebe5d3c7815 105-152
+tests/helpers.ts
+  h_b64ebe5d3c7815 1,6-8,10-22,24-39,41-81,83-84,87-88,92,97-98,100-101,103-109,111-112,115-165
+tests/render.test.ts
+  h_b64ebe5d3c7815 1-103
+tsconfig.json
+  h_b64ebe5d3c7815 14-15,18
+vendor/sticker-assets/CONTRACT.md
+  h_b64ebe5d3c7815 1-190
+vendor/sticker-assets/VERSION.json
+  h_b64ebe5d3c7815 1-39
+vendor/sticker-assets/config/limits.json
+  h_b64ebe5d3c7815 1-21
+vendor/sticker-assets/config/mirrors.json
+  h_b64ebe5d3c7815 1-30
+vendor/sticker-assets/config/synonyms.json
+  h_b64ebe5d3c7815 1-33
+vendor/sticker-assets/config/taxonomy.json
+  h_b64ebe5d3c7815 1-69
+vendor/sticker-assets/fixtures/sample-repo/budgets/daily/2026-11-07.json
+  h_b64ebe5d3c7815 1-7
+vendor/sticker-assets/fixtures/sample-repo/budgets/daily/2026-11-08.json
+  h_b64ebe5d3c7815 1-7
+vendor/sticker-assets/fixtures/sample-repo/budgets/daily/2026-11-09.json
+  h_b64ebe5d3c7815 1-7
+vendor/sticker-assets/fixtures/sample-repo/config/limits.json
+  h_b64ebe5d3c7815 1-21
+vendor/sticker-assets/fixtures/sample-repo/config/mirrors.json
+  h_b64ebe5d3c7815 1-30
+vendor/sticker-assets/fixtures/sample-repo/config/synonyms.json
+  h_b64ebe5d3c7815 1-33
+vendor/sticker-assets/fixtures/sample-repo/config/taxonomy.json
+  h_b64ebe5d3c7815 1-69
+vendor/sticker-assets/fixtures/sample-repo/events/07/op_0765ba248f7928e0a37d2f026ba83e71.json
+  h_b64ebe5d3c7815 1-19
+vendor/sticker-assets/fixtures/sample-repo/events/48/op_48e754a54e045ef01286a936cacb5271.json
+  h_b64ebe5d3c7815 1-19
+vendor/sticker-assets/fixtures/sample-repo/events/51/op_51972b59cdaec76a1a76deb31a2f7c8a.json
+  h_b64ebe5d3c7815 1-19
+vendor/sticker-assets/fixtures/sample-repo/events/73/op_736ebe0e89a19beacf6ab8a9b38eee55.json
+  h_b64ebe5d3c7815 1-19
+vendor/sticker-assets/fixtures/sample-repo/events/b1/op_b1dce4dda83a76380306172c88da8c36.json
+  h_b64ebe5d3c7815 1-19
+vendor/sticker-assets/fixtures/sample-repo/events/c1/op_c1f681515469f18ec58982a12ac6118f.json
+  h_b64ebe5d3c7815 1-19
+vendor/sticker-assets/fixtures/sample-repo/events/dd/op_ddce4c03af6b395f943df7e625b83c51.json
+  h_b64ebe5d3c7815 1-18
+vendor/sticker-assets/fixtures/sample-repo/events/f2/op_f2e8f198a646fe6f4c6ab65f1f6961b5.json
+  h_b64ebe5d3c7815 1-18
+vendor/sticker-assets/fixtures/sample-repo/events/f8/op_f8d08f4faa17e4b80ede860c80d5e689.json
+  h_b64ebe5d3c7815 1-18
+vendor/sticker-assets/fixtures/sample-repo/indexes/catalog.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/docs/2e0.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/docs/2fe.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/docs/560.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/docs/82f.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/recent.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/00.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/0a.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/0b.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/0d.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/0f.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/15.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/19.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/1f.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/20.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/22.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/27.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/29.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/2c.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/34.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/35.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/38.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/41.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/43.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/45.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/47.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/48.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/49.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/4b.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/4d.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/4e.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/4f.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/50.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/51.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/5c.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/60.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/62.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/63.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/65.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/6a.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/6c.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/6f.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/76.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/7d.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/7e.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/indexes/terms/7f.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/fixtures/sample-repo/licenses/ofl-1-1.json
+  h_b64ebe5d3c7815 1-12
+vendor/sticker-assets/fixtures/sample-repo/licenses/self-created-project.json
+  h_b64ebe5d3c7815 1-12
+vendor/sticker-assets/fixtures/sample-repo/manifests/2e.json
+  h_b64ebe5d3c7815 1-67
+vendor/sticker-assets/fixtures/sample-repo/manifests/2f.json
+  h_b64ebe5d3c7815 1-64
+vendor/sticker-assets/fixtures/sample-repo/manifests/44.json
+  h_b64ebe5d3c7815 1-64
+vendor/sticker-assets/fixtures/sample-repo/manifests/56.json
+  h_b64ebe5d3c7815 1-63
+vendor/sticker-assets/fixtures/sample-repo/manifests/82.json
+  h_b64ebe5d3c7815 1-64
+vendor/sticker-assets/fixtures/sample-repo/manifests/bd.json
+  h_b64ebe5d3c7815 1-62
+vendor/sticker-assets/fixtures/sample-repo/sticker-assets.json
+  h_b64ebe5d3c7815 1-6
+vendor/sticker-assets/fixtures/sample-repo/templates/caption-bar/1/template.json
+  h_b64ebe5d3c7815 1-108
+vendor/sticker-assets/lib/canonical.mjs
+  h_b64ebe5d3c7815 1-12
+vendor/sticker-assets/lib/commit-plan.mjs
+  h_b64ebe5d3c7815 1-168
+vendor/sticker-assets/lib/hash.mjs
+  h_b64ebe5d3c7815 1-15
+vendor/sticker-assets/lib/image.mjs
+  h_b64ebe5d3c7815 1-132
+vendor/sticker-assets/lib/indexer.mjs
+  h_b64ebe5d3c7815 1-221
+vendor/sticker-assets/lib/jsonschema.mjs
+  h_b64ebe5d3c7815 1-152
+vendor/sticker-assets/lib/repo.mjs
+  h_b64ebe5d3c7815 1-43
+vendor/sticker-assets/lib/search.mjs
+  h_b64ebe5d3c7815 1-55
+vendor/sticker-assets/lib/strip.mjs
+  h_b64ebe5d3c7815 1-78
+vendor/sticker-assets/lib/time.mjs
+  h_b64ebe5d3c7815 1-11
+vendor/sticker-assets/lib/tokenize.mjs
+  h_b64ebe5d3c7815 1-53
+vendor/sticker-assets/lib/urls.mjs
+  h_b64ebe5d3c7815 1-27
+vendor/sticker-assets/lib/validator.mjs
+  h_b64ebe5d3c7815 1-310
+vendor/sticker-assets/schemas.mjs
+  h_b64ebe5d3c7815 1-2
+vendor/sticker-assets/schemas/v1/asset.schema.json
+  h_b64ebe5d3c7815 1-106
+vendor/sticker-assets/schemas/v1/budget.schema.json
+  h_b64ebe5d3c7815 1-15
+vendor/sticker-assets/schemas/v1/common.schema.json
+  h_b64ebe5d3c7815 1-31
+vendor/sticker-assets/schemas/v1/event.schema.json
+  h_b64ebe5d3c7815 1-55
+vendor/sticker-assets/schemas/v1/index-catalog.schema.json
+  h_b64ebe5d3c7815 1-49
+vendor/sticker-assets/schemas/v1/index-docs.schema.json
+  h_b64ebe5d3c7815 1-41
+vendor/sticker-assets/schemas/v1/index-recent.schema.json
+  h_b64ebe5d3c7815 1-21
+vendor/sticker-assets/schemas/v1/index-terms.schema.json
+  h_b64ebe5d3c7815 1-27
+vendor/sticker-assets/schemas/v1/license.schema.json
+  h_b64ebe5d3c7815 1-24
+vendor/sticker-assets/schemas/v1/manifest-shard.schema.json
+  h_b64ebe5d3c7815 1-13
+vendor/sticker-assets/schemas/v1/mirrors.schema.json
+  h_b64ebe5d3c7815 1-41
+vendor/sticker-assets/schemas/v1/template.schema.json
+  h_b64ebe5d3c7815 1-182
+vendor/sticker-assets/sticker-assets.json
+  h_b64ebe5d3c7815 1-6
+vercel.json
+  h_b64ebe5d3c7815 1-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "58d9303497fc48990a1c50ad8ccc196a322557fb",
+  "prompts": {},
+  "humans": {
+    "h_b64ebe5d3c7815": {
+      "author": "Class Liu <chunlang.liu@rdc-west.com>"
+    }
+  }
+}

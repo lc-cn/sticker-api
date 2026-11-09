@@ -27,6 +27,7 @@ export type LightTemplate = {
   id: string;
   version: number;
   title: string;
+  description?: string;
   status: string;
   renderer: string;
   inputs: { texts: { min: number; max: number; maxLength: number }; images: { min: number; max: number } };

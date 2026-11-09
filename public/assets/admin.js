@@ -1,4 +1,4 @@
-import { $, el, api, ApiError, imgFromSources, fmtTime, toast, idemKey, safeUrl } from './common.js';
+import { $, el, api, ApiError, imgFromSources, fmtTime, toast, idemKey, safeUrl, copyText } from './common.js';
 
 const app = $('#app');
 let session = null; // { admin, csrfToken, repo }
@@ -164,6 +164,7 @@ function assetsView() {
     el('td', { class: 'hide-sm small' }, fmtTime(a.uploadedAt)),
     el('td', {}, el('span', { class: `status ${a.status || 'active'}` }, STATUS_LABEL[a.status || 'active'] || a.status), el('div', { class: 'muted small' }, `r${a.revision ?? '?'}`)),
     el('td', {}, el('div', { class: 'ops' },
+      a.contentUrl ? el('button', { class: 'btn sm', type: 'button', title: a.contentUrl, onclick: () => copyText(`${location.origin}${a.contentUrl}`) }, '复制短链') : null,
       el('button', { class: 'btn sm', type: 'button', onclick: () => editDialog(a.id, reload) }, '编辑'),
       el('button', { class: 'btn sm', type: 'button', onclick: () => reviewDialog(a.id, reload) }, '审核'),
       el('button', { class: 'btn sm danger', type: 'button', onclick: () => deleteDialog(a.id, reload) }, '删除'))));

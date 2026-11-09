@@ -8,6 +8,7 @@ import type { Snapshot } from '../repo/snapshot.js';
 import { composeSvg, type LightTemplate, type Renderer } from '../render/renderer.js';
 import type { AssetService } from './assets.js';
 import { SlidingLimiter } from '../http/rate-limit.js';
+import { fetchRemoteImage } from '../http/fetch-image.js';
 
 /** Unauthenticated homepage visitor; identified only by (bucketed) client IP, never persisted. */
 export type AnonymousPrincipal = { kind: 'anonymous'; ip: string };
@@ -23,7 +24,14 @@ export type RenderInput = {
   version?: number;
   texts: string[];
   params: Record<string, unknown>;
+  /** Multipart uploads, consumed in slot order when the matching imageUrls[i] is empty. */
   images: Buffer[];
+  /**
+   * Per-slot http(s) image URLs (SSRF-checked server fetch). Parallel to image slots:
+   * a non-empty string at index i fills that slot; otherwise the next multipart upload is used.
+   * Counts against the same render rate limit as uploads.
+   */
+  imageUrls: (string | null | undefined)[];
   assetIds: string[];
 };
 
@@ -85,9 +93,13 @@ export class RenderService {
       const base = t.layers.find((l) => l.type === 'image' && 'file' in l && typeof (l as { file?: unknown }).file === 'string') as { file: string } | undefined;
       const dir = e.path.replace(/template\.json$/, '');
       const preview = base ? this.assets.sources(snap.commit, dir + base.file, mirrors) : [];
+      const description = typeof (t as { description?: unknown }).description === 'string'
+        ? (t as { description: string }).description.slice(0, 120)
+        : '';
       out.push({
-        id: t.id, version: t.version, title: t.title, inputs: t.inputs, params: t.params, output: t.output,
-        canvas: { width: t.canvas.width, height: t.canvas.height }, licenseIds: t.licenseIds, notice: t.notice,
+        id: t.id, version: t.version, title: t.title, description,
+        inputs: t.inputs, params: t.params, output: t.output,
+        canvas: { width: t.canvas.width, height: t.canvas.height }, licenseIds: t.licenseIds,
         tags: (t as { tags?: string[] }).tags ?? [], preview,
         renderable: r.ok, unavailableReason: r.reason,
       });
@@ -151,10 +163,27 @@ export class RenderService {
       if (!ok) throw new AppError(400, 'invalid_params', `param ${k} invalid`);
     }
 
-    // images: uploads first, then referenced live assets (tombstone-filtered, hash-verified)
+    // images: per-slot URL (SSRF-safe fetch) or next multipart upload, then assetIds
+    if (input.imageUrls.length > t.inputs.images.max) {
+      throw new AppError(400, 'invalid_images', `imageUrls must have at most ${t.inputs.images.max} items`);
+    }
+    const uploadQ = [...input.images];
+    const slotBufs: Buffer[] = [];
+    const slotCount = Math.max(t.inputs.images.max, input.imageUrls.length, uploadQ.length);
+    for (let i = 0; i < slotCount && slotBufs.length < t.inputs.images.max; i++) {
+      const raw = input.imageUrls[i];
+      const url = typeof raw === 'string' ? raw.trim() : '';
+      if (url) {
+        slotBufs.push(await fetchRemoteImage(url));
+      } else if (uploadQ.length) {
+        slotBufs.push(uploadQ.shift()!);
+      }
+    }
+    if (uploadQ.length) throw new AppError(400, 'invalid_images', 'too many uploaded images for the template slots');
+
     const images: ValidatedImage[] = [];
     let bytes = 0;
-    for (const b of input.images) {
+    for (const b of slotBufs) {
       if (b.length > RENDER_IMAGE_MAX) throw new AppError(413, 'payload_too_large', 'Each render image must be ≤1 MiB');
       bytes += b.length;
       images.push(validateImage(b, { ...DEFAULT_IMAGE_LIMITS, maxBytes: RENDER_IMAGE_MAX }));

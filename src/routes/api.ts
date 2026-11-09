@@ -82,6 +82,19 @@ export async function registerApiRoutes(
       .redirect(t.url, 302);
   });
 
+  // Short public image URL: /v1/asset/<hex8-64>.<png|jpg|gif|webp> → 302 same mirror chain as /content.
+  app.get('/v1/asset/:file', async (req, reply) => {
+    const { file } = req.params as { file: string };
+    const m = /^([0-9a-fA-F]{8,64})\.(png|jpe?g|gif|webp)$/.exec(file);
+    if (!m) throw new AppError(404, 'not_found', 'Unknown asset id');
+    const t = await assets.contentTargetByShort(m[1]!.toLowerCase(), m[2]!.toLowerCase() === 'jpeg' ? 'jpg' : m[2]!.toLowerCase());
+    return reply
+      .header('cache-control', 'public, max-age=300, stale-while-revalidate=600')
+      .header('x-content-sha256', t.sha256)
+      .header('x-asset-commit', t.commit)
+      .redirect(t.url, 302);
+  });
+
   app.get('/v1/categories', async (_req, reply) => {
     noStore(reply);
     return assets.categories();
@@ -173,7 +186,7 @@ export async function registerApiRoutes(
       anonymous && config.publicRendersEnabled
         ? { kind: 'anonymous', ip: ipBucket(clientIp(req, config.trustProxyHeaders)) }
         : requirePrincipal(req, config, keys, 'render');
-    let input: { template: unknown; version?: unknown; texts?: unknown; params?: unknown; assetIds?: unknown };
+    let input: { template: unknown; version?: unknown; texts?: unknown; params?: unknown; assetIds?: unknown; imageUrls?: unknown };
     let images: Buffer[] = [];
     const ct = String(req.headers['content-type'] ?? '');
     if (ct.startsWith('multipart/form-data')) {
@@ -188,11 +201,20 @@ export async function registerApiRoutes(
     const texts = input.texts === undefined ? [] : input.texts;
     const assetIds = input.assetIds === undefined ? [] : input.assetIds;
     if (!Array.isArray(texts) || !Array.isArray(assetIds) || assetIds.some((x) => typeof x !== 'string')) throw new AppError(400, 'invalid_request', 'texts/assetIds must be arrays');
+    let imageUrls: (string | null)[] = [];
+    if (input.imageUrls !== undefined) {
+      if (!Array.isArray(input.imageUrls) || input.imageUrls.length > 2) throw new AppError(400, 'invalid_request', 'imageUrls must be an array of ≤2 entries');
+      imageUrls = input.imageUrls.map((u, i) => {
+        if (u === null || u === undefined || u === '') return null;
+        if (typeof u !== 'string') throw new AppError(400, 'invalid_request', `imageUrls[${i}] must be a string or null`);
+        return u;
+      });
+    }
     const params = input.params === undefined ? {} : input.params;
     if (!params || typeof params !== 'object' || Array.isArray(params)) throw new AppError(400, 'invalid_request', 'params must be an object');
     const version = input.version === undefined ? undefined : Number(input.version);
     if (version !== undefined && !(Number.isInteger(version) && version >= 1)) throw new AppError(400, 'invalid_request', 'version must be a positive integer');
-    const out = await renders.render(principal, { template: input.template, version, texts: texts as string[], params: params as Record<string, unknown>, images, assetIds: assetIds as string[] });
+    const out = await renders.render(principal, { template: input.template, version, texts: texts as string[], params: params as Record<string, unknown>, images, imageUrls, assetIds: assetIds as string[] });
     return reply.header('content-type', 'image/png').header('cache-control', 'no-store').header('x-template', out.template).header('x-content-type-options', 'nosniff').send(out.png);
   });
 }

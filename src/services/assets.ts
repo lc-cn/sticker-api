@@ -29,11 +29,26 @@ export type Receipt = {
 
 const nowUtc = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 const ID_RE = /^(?:sha256:)?([0-9a-f]{64})$/;
+/** A indexes/docs keys use the first 12 hex of sha256 (DOC_KEY_LENGTH). At maxAssets=3000 this is unique in practice. */
+export const SHORT_ID_LEN = 12;
+const SHORT_RE = /^([0-9a-f]{8,64})$/;
+const EXT_BY_MIME: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' };
+const MIME_BY_EXT: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' };
 
 export function parseAssetId(raw: string): string {
   const m = ID_RE.exec(raw);
   if (!m) throw new AppError(404, 'not_found', 'Unknown asset id');
   return m[1]!;
+}
+
+/** Canonical short public path: /v1/asset/<12hex>.<ext> */
+export function shortContentPath(sha256: string, mime: string): string {
+  const ext = EXT_BY_MIME[mime] || 'png';
+  return `/v1/asset/${sha256.slice(0, SHORT_ID_LEN)}.${ext}`;
+}
+
+export function mimeFromExt(ext: string): string | null {
+  return MIME_BY_EXT[ext.toLowerCase()] ?? null;
 }
 
 const manilaFmt = new Intl.DateTimeFormat('sv-SE', {
@@ -127,7 +142,7 @@ export class AssetService {
       updatedAt: r.updatedAt,
       archivedAt: r.archivedAt,
       deletedAt: r.deletedAt,
-      contentUrl: live ? `/v1/assets/${r.id}/content` : null,
+      contentUrl: live ? shortContentPath(r.object.sha256, r.object.mime) : null,
       sources: live ? this.sources(commit, r.object.path, mirrors) : [],
     };
   }
@@ -156,6 +171,64 @@ export class AssetService {
     const pick = sourceId ? list.find((s) => s.id === sourceId) : list[0];
     if (!pick) throw new AppError(400, 'unknown_source', `source must be one of ${list.map((s) => s.id).join(',')}`);
     return { url: pick.url, sha256: r.object.sha256, commit: snap.commit };
+  }
+
+  /**
+   * Resolve a hex prefix (8–64) to a live asset via indexes/docs (keyed by 12-hex docKey).
+   * Ambiguous prefixes → 409; unknown → 404. Full 64-hex uses the manifest path directly.
+   */
+  async resolveByPrefix(prefix: string): Promise<{ sha: string; record: AssetRecord; snap: Snapshot }> {
+    const m = SHORT_RE.exec(prefix.toLowerCase());
+    if (!m) throw new AppError(404, 'not_found', 'Unknown asset id');
+    const pfx = m[1]!;
+    const snap = await this.snapshot();
+    if (pfx.length === 64) {
+      const r = await this.record(snap, pfx);
+      if (!r) throw new AppError(404, 'not_found', 'Unknown asset id');
+      return { sha: pfx, record: r, snap };
+    }
+    const catalog = await snap.json<Catalog>(INDEX_PATHS.catalog);
+    if (!catalog) throw new AppError(404, 'not_found', 'Unknown asset id');
+    const shards: string[] = pfx.length >= 3
+      ? (catalog.docShards.includes(pfx.slice(0, 3)) ? [pfx.slice(0, 3)] : [])
+      : catalog.docShards.filter((s) => s.startsWith(pfx));
+    const hits: string[] = [];
+    for (const hh of shards) {
+      const file = await snap.json<{ docs?: Record<string, { id?: string }> }>(INDEX_PATHS.docs(hh));
+      for (const [key, doc] of Object.entries(file?.docs ?? {})) {
+        const full = typeof doc?.id === 'string' ? doc.id.replace(/^sha256:/, '') : '';
+        if (!full || full.length !== 64) continue;
+        if (key.startsWith(pfx) || full.startsWith(pfx)) {
+          if (!hits.includes(full)) hits.push(full);
+        }
+      }
+    }
+    if (hits.length === 0) throw new AppError(404, 'not_found', 'Unknown asset id');
+    if (hits.length > 1) {
+      throw new AppError(409, 'ambiguous_id', `Prefix matches ${hits.length} assets; use a longer hex prefix (canonical short id is ${SHORT_ID_LEN} chars)`, {
+        retryable: false,
+        details: { prefix: pfx, candidates: hits.slice(0, 8).map((id) => id.slice(0, SHORT_ID_LEN)) },
+      });
+    }
+    const sha = hits[0]!;
+    const r = await this.record(snap, sha);
+    if (!r) throw new AppError(404, 'not_found', 'Unknown asset id');
+    return { sha, record: r, snap };
+  }
+
+  /** Short public URL target: same mirror chain as /v1/assets/:id/content, with ext check. */
+  async contentTargetByShort(prefix: string, ext: string): Promise<{ url: string; sha256: string; commit: string; mime: string }> {
+    if (!this.config.contentEnabled) throw new AppError(503, 'content_disabled', 'Content serving is temporarily disabled');
+    const wantMime = mimeFromExt(ext);
+    if (!wantMime) throw new AppError(404, 'not_found', 'Unknown asset id');
+    const { sha, record: r, snap } = await this.resolveByPrefix(prefix);
+    if (r.status === 'tombstoned') throw new AppError(410, 'gone', 'Asset was removed', { retryable: false });
+    if (r.object.mime !== wantMime) {
+      throw new AppError(404, 'not_found', `Extension .${ext} does not match this asset (expected .${EXT_BY_MIME[r.object.mime] || 'bin'})`);
+    }
+    const list = this.sources(snap.commit, r.object.path, await this.mirrors(snap));
+    if (!list.length) throw new AppError(503, 'no_source', 'No content source configured');
+    return { url: list[0]!.url, sha256: sha, commit: snap.commit, mime: r.object.mime };
   }
 
   /** Live object bytes at the current HEAD, hash-verified (used by renders referencing an asset). */
@@ -193,7 +266,7 @@ export class AssetService {
       ...d,
       uploadedAtLocal: toManila(d.uploadedAt),
       score,
-      contentUrl: `/v1/assets/${d.id}/content`,
+      contentUrl: shortContentPath(d.id.replace(/^sha256:/, ''), d.mime),
       sources: this.sources(snap.commit, d.path, mirrors),
     });
     const cursorFor = (total: number) => (offset + limit < total ? Buffer.from(String(offset + limit)).toString('base64url') : null);

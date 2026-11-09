@@ -28,7 +28,7 @@ components:
             details: { type: object }
     Asset:
       type: object
-      description: A asset record (see vendor/sticker-assets/schemas/v1/asset.schema.json) plus uploadedAtLocal, contentUrl, sources
+      description: A asset record (see vendor/sticker-assets/schemas/v1/asset.schema.json) plus uploadedAtLocal, contentUrl (short /v1/asset/<12hex>.<ext>), sources (mirror candidates)
     Receipt:
       type: object
       properties:
@@ -105,9 +105,23 @@ paths:
       responses: { "200": { description: Receipt }, "501": { $ref: "#/components/responses/Err" } }
   /v1/assets/{id}/content:
     parameters: [{ $ref: "#/components/parameters/AssetId" }, { name: source, in: query, schema: { type: string } }]
-    get: { summary: "302 to mirror candidate or raw (pinned commit)", responses: { "302": { description: "Location + x-content-sha256 + x-asset-commit" }, "410": { $ref: "#/components/responses/Err" } } }
+    get: { summary: "302 to mirror candidate or raw (pinned commit). Prefer contentUrl short form /v1/asset/{shortId}.{ext}.", responses: { "302": { description: "Location + x-content-sha256 + x-asset-commit" }, "410": { $ref: "#/components/responses/Err" } } }
+  /v1/asset/{file}:
+    get:
+      summary: "Short public image URL — 302 to the same mirror chain as /v1/assets/{id}/content"
+      description: |
+        `{file}` = `<hex>.<ext>` where hex is 8–64 hex of the object sha256 (canonical short id = first 12,
+        matching A's indexes/docs docKey) and ext is png|jpg|jpeg|gif|webp matching the stored mime.
+        Ambiguous short prefixes → 409 ambiguous_id. Wrong ext → 404. Legacy long content URL still works.
+      parameters:
+        - { name: file, in: path, required: true, schema: { type: string, pattern: "^[0-9a-fA-F]{8,64}\.(png|jpe?g|gif|webp)$" } }
+      responses:
+        "302": { description: "Location + x-content-sha256 + x-asset-commit" }
+        "404": { $ref: "#/components/responses/Err" }
+        "409": { description: "ambiguous_id — prefix matches multiple assets" }
+        "410": { $ref: "#/components/responses/Err" }
   /v1/templates:
-    get: { summary: "Active templates with inputs, tags, preview (mirror URLs of the base image, pinned to commit), renderable/unavailableReason", responses: { "200": { description: "{commit, templates[]}" } } }
+    get: { summary: "Active templates with inputs, tags, short description, preview (mirror URLs of the base image, pinned to commit), renderable/unavailableReason. Long provenance/notice is NOT returned — see A licenses/ + template.source in-repo.", responses: { "200": { description: "{commit, templates[]}" } } }
   /v1/renders:
     post:
       summary: Render a light-v1 template to PNG
@@ -119,12 +133,15 @@ paths:
         global quota). Client IP = x-real-ip / first x-forwarded-for hop only behind a trusted proxy (Vercel), else
         the socket peer. Anonymous callers may only reference active (public) assetIds. Same size/time limits apply.
         When disabled, anonymous requests get 401 as before.
+        imageUrls: optional per-slot http(s) URLs fetched server-side with SSRF protections (public DNS only,
+        no loopback/private/link-local/metadata, credentials forbidden, ≤3 redirects re-checked, 8s timeout,
+        ≤5 MiB download then ≤1 MiB validated image). Same anonymous/auth rate limits apply.
       security: [{ machine: [] }, { adminSession: [] }, {}]
       requestBody:
         content:
-          application/json: { schema: { type: object, required: [template], properties: { template: { type: string }, version: { type: integer }, texts: { type: array, items: { type: string } }, params: { type: object }, assetIds: { type: array, items: { type: string } } } } }
-          multipart/form-data: { schema: { type: object, properties: { request: { type: string, description: same JSON }, image: { type: string, format: binary, description: "≤1 MiB each, ≤2 MiB total" } } } }
-      responses: { "200": { description: image/png }, "404": { $ref: "#/components/responses/Err" }, "429": { $ref: "#/components/responses/Err" }, "503": { description: "template_unavailable | render_timeout | renders_disabled" } }
+          application/json: { schema: { type: object, required: [template], properties: { template: { type: string }, version: { type: integer }, texts: { type: array, items: { type: string } }, params: { type: object }, assetIds: { type: array, items: { type: string } }, imageUrls: { type: array, maxItems: 2, items: { type: [string, "null"] }, description: "Per-slot http(s) image URLs. Non-empty entry at index i fills that slot (server fetches with SSRF protections); null/omit takes the next multipart image. Counts against the same render rate limit." } } } }
+          multipart/form-data: { schema: { type: object, properties: { request: { type: string, description: "same JSON (may include imageUrls)" }, image: { type: string, format: binary, description: "≤1 MiB each after re-encode, ≤2 MiB total; slot order pairs with imageUrls" } } } }
+      responses: { "200": { description: image/png }, "400": { description: "invalid_image_url | ssrf_blocked | image_fetch_failed | invalid_image | …" }, "404": { $ref: "#/components/responses/Err" }, "429": { $ref: "#/components/responses/Err" }, "503": { description: "template_unavailable | render_timeout | renders_disabled" } }
   /v1/operations/{op}:
     get:
       summary: Operation receipt (machines must send the original Idempotency-Key)

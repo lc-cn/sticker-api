@@ -91,15 +91,17 @@ function openDetail(item) {
   $('#detail-tags').replaceChildren(...(tags.length ? tags.map((t) => el('span', { class: 'tag' }, t)) : ['—']));
   $('#detail-time').textContent = fmtTime(item.uploadedAt);
   $('#detail-size').textContent = `${item.width ?? '?'}×${item.height ?? '?'} · ${fmtBytes(item.bytes)} · ${String(item.mime || '').replace('image/', '').toUpperCase()}`;
-  const first = safeUrl(item.sources?.[0]?.url);
+  const short = item.contentUrl ? `${location.origin}${item.contentUrl}` : null;
+  const first = short || safeUrl(item.sources?.[0]?.url);
   const open = $('#detail-open');
-  if (first) open.setAttribute('href', first); else open.removeAttribute('href');
+  if (first) { open.setAttribute('href', first); open.textContent = short ? '打开短链' : '打开原图'; }
+  else { open.removeAttribute('href'); }
   dlg.showModal();
 }
 $('#detail-close').addEventListener('click', () => dlg.close());
 dlg.addEventListener('click', (ev) => { if (ev.target === dlg) dlg.close(); });
 $('#detail-copy').addEventListener('click', () => {
-  const u = safeUrl(current?.sources?.[0]?.url);
+  const u = current?.contentUrl ? `${location.origin}${current.contentUrl}` : safeUrl(current?.sources?.[0]?.url);
   if (u) copyText(u);
 });
 $('#detail-dl').addEventListener('click', () => {
@@ -113,35 +115,36 @@ const SERVER_MAX = 1024 * 1024; // what the server accepts per image (bigger pic
 const TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 let templates = [];
 let selected = null;
+let publicRenders = false;
 let resultBlob = null;
-let publicRenders = true;
+/** @type {Array<{ file: File|null, url: string, preview: string|null, error: string }>} */
+let slots = [];
 
 async function loadTemplates() {
   const box = $('#templates');
   try {
     const [t, h] = await Promise.all([api('/v1/templates'), api('/v1/health').catch(() => null)]);
-    publicRenders = !h || h.publicRenders !== false;
+    publicRenders = !!(h && h.publicRenders);
     templates = t.templates.filter((x) => x.renderable);
     if (!templates.length) {
-      box.replaceChildren(el('div', { class: 'empty' }, '暂时没有可用的模板。'));
+      box.replaceChildren(el('div', { class: 'muted' }, '暂时没有可用的模板。'));
       return;
     }
     box.replaceChildren(...templates.map((tpl) => {
       const kind = tpl.inputs.images.max > 0 ? `放 ${tpl.inputs.images.max} 张图` : `${tpl.inputs.texts.max} 段文字`;
-      const b = el('button', { type: 'button', class: 'tpl', 'aria-pressed': 'false', title: tpl.title, dataset: { id: tpl.id } },
+      const btn = el('button', { type: 'button', class: 'tpl', dataset: { id: tpl.id }, 'aria-pressed': 'false', onclick: () => pick(tpl) },
         el('div', { class: 'thumb' }, imgFromSources(tpl.preview, tpl.title)),
-        el('div', { class: 'name' }, tpl.title),
-        el('div', { class: 'kind' }, kind));
-      b.addEventListener('click', () => pick(tpl));
-      return b;
+        el('div', { class: 'meta' },
+          el('div', { class: 'name' }, tpl.title),
+          el('div', { class: 'sub' }, kind)));
+      return btn;
     }));
-    const fromHash = new URLSearchParams(location.hash.slice(1)).get('t');
+    const fromHash = decodeURIComponent((location.hash.match(/[#&]t=([^&]+)/) || [])[1] || '');
     const pre = templates.find((x) => x.id === fromHash);
     if (pre) pick(pre, false);
   } catch (e) {
-    const err = $('#tpl-error');
-    err.textContent = `模板加载失败：${errorText(e)}`;
-    err.classList.remove('hidden');
+    $('#tpl-error').textContent = e instanceof ApiError ? errorText(e) : String(e.message || e);
+    $('#tpl-error').classList.remove('hidden');
   }
 }
 
@@ -150,6 +153,166 @@ function msg(kind, text) {
   m.className = `alert ${kind}`;
   m.textContent = text;
   m.classList.toggle('hidden', !text);
+}
+
+function revokeSlot(i) {
+  const s = slots[i];
+  if (s?.preview) URL.revokeObjectURL(s.preview);
+}
+
+function clearSlot(i, { keepUrl = false } = {}) {
+  revokeSlot(i);
+  slots[i] = { file: null, url: keepUrl ? (slots[i]?.url || '') : '', preview: null, error: '' };
+}
+
+function setSlotFile(i, file) {
+  if (!TYPES.includes(file.type)) {
+    slots[i].error = '只支持 PNG / JPG / GIF / WebP';
+    slots[i].file = null;
+    revokeSlot(i);
+    slots[i].preview = null;
+    return renderSlot(i);
+  }
+  if (file.size > MAX_PICK) {
+    slots[i].error = `超过 2MB（${fmtBytes(file.size)}）`;
+    slots[i].file = null;
+    revokeSlot(i);
+    slots[i].preview = null;
+    return renderSlot(i);
+  }
+  revokeSlot(i);
+  slots[i] = { file, url: '', preview: URL.createObjectURL(file), error: '' };
+  renderSlot(i);
+}
+
+async function setSlotUrl(i, raw) {
+  const url = (raw || '').trim();
+  slots[i].url = url;
+  slots[i].error = '';
+  if (!url) {
+    if (!slots[i].file) clearSlot(i);
+    return renderSlot(i);
+  }
+  const safe = safeUrl(url);
+  if (!safe || !/^https?:/i.test(safe)) {
+    slots[i].error = '请输入 http(s) 图片链接';
+    return renderSlot(i);
+  }
+  // Try browser fetch first (blob preview). CORS failures → keep URL for server-side fetch.
+  try {
+    const res = await fetch(safe, { mode: 'cors', credentials: 'omit' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    if (!TYPES.includes(blob.type) && !blob.type.startsWith('image/')) throw new Error('not image');
+    const file = new File([blob], 'from-url.' + (blob.type.split('/')[1] || 'img'), { type: blob.type || 'image/jpeg' });
+    if (file.size > MAX_PICK) throw new Error('too large');
+    revokeSlot(i);
+    slots[i] = { file, url: safe, preview: URL.createObjectURL(file), error: '' };
+  } catch {
+    revokeSlot(i);
+    slots[i].file = null;
+    slots[i].preview = null;
+    slots[i].url = safe;
+    slots[i].error = ''; // server will fetch; show URL chip without preview
+  }
+  renderSlot(i);
+}
+
+function renderSlot(i) {
+  const host = $(`#slot-${i}`);
+  if (!host) return;
+  const s = slots[i];
+  const tpl = selected;
+  const label = tpl.inputs.images.max > 1 ? `第 ${i + 1} 张图片` : '图片';
+  const required = i < tpl.inputs.images.min;
+  const fileId = `img-file-${i}`;
+
+  const kids = [el('div', { class: 'slot-label' }, label, required ? el('span', { class: 'req' }, ' *') : null)];
+
+  if (s.preview || (s.url && !s.file)) {
+    const preview = el('div', { class: 'drop-preview' });
+    if (s.preview) {
+      preview.append(el('img', { src: s.preview, alt: '预览' }));
+    } else {
+      preview.append(el('div', { class: 'drop-url-only' },
+        el('div', { class: 'drop-url-badge' }, '将由服务器代取'),
+        el('div', { class: 'drop-url-text', title: s.url }, s.url)));
+    }
+    const meta = el('div', { class: 'drop-meta' });
+    if (s.file) meta.append(el('div', { class: 'drop-name' }, s.file.name), el('div', { class: 'drop-size' }, fmtBytes(s.file.size)));
+    else if (s.url) meta.append(el('div', { class: 'drop-name' }, '网络图片'));
+    const actions = el('div', { class: 'drop-actions' },
+      el('button', { type: 'button', class: 'btn sm', onclick: () => $(`#${fileId}`).click() }, '替换'),
+      el('button', { type: 'button', class: 'btn sm danger', onclick: () => { clearSlot(i); renderSlot(i); } }, '移除'));
+    kids.push(el('div', { class: 'drop-filled' }, preview, el('div', { class: 'drop-side' }, meta, actions)));
+  } else {
+    const zone = el('div', {
+      class: 'drop-zone',
+      tabindex: '0',
+      role: 'button',
+      'aria-label': `${label}：拖拽、点击或粘贴图片`,
+      onclick: (ev) => { if (ev.target.closest('input,button,a')) return; $(`#${fileId}`).click(); },
+      onkeydown: (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); $(`#${fileId}`).click(); }
+      },
+    },
+      el('div', { class: 'drop-icon', 'aria-hidden': 'true' }, '⇧'),
+      el('div', { class: 'drop-title' }, '拖拽图片到这里'),
+      el('div', { class: 'drop-hint' }, '或点击选择 · 支持 Ctrl/⌘+V 粘贴'),
+      el('button', { type: 'button', class: 'btn sm primary drop-pick', onclick: (ev) => { ev.stopPropagation(); $(`#${fileId}`).click(); } }, '选择图片'));
+    zone.addEventListener('dragenter', (ev) => { ev.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragover', (ev) => { ev.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', (ev) => { if (!zone.contains(ev.relatedTarget)) zone.classList.remove('dragover'); });
+    zone.addEventListener('drop', (ev) => {
+      ev.preventDefault();
+      zone.classList.remove('dragover');
+      const f = ev.dataTransfer?.files?.[0];
+      if (f) setSlotFile(i, f);
+    });
+    kids.push(zone);
+  }
+
+  kids.push(el('input', {
+    id: fileId, type: 'file', class: 'sr-only', accept: TYPES.join(','),
+    'aria-label': `选择${label}文件`,
+    onchange: (ev) => { const f = ev.target.files?.[0]; if (f) setSlotFile(i, f); ev.target.value = ''; },
+  }));
+
+  const urlRow = el('div', { class: 'drop-url-row' },
+    el('label', { class: 'sr-only', for: `img-url-${i}` }, `${label}链接`),
+    el('input', {
+      id: `img-url-${i}`, type: 'url', inputmode: 'url', autocomplete: 'off',
+      placeholder: '或粘贴图片 http(s) 链接',
+      value: s.url || '',
+      onchange: (ev) => setSlotUrl(i, ev.target.value),
+      onkeydown: (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); setSlotUrl(i, ev.target.value); } },
+    }),
+    el('button', { type: 'button', class: 'btn sm', onclick: () => setSlotUrl(i, $(`#img-url-${i}`).value) }, '使用链接'));
+  kids.push(urlRow);
+
+  if (s.error) kids.push(el('div', { class: 'drop-error', role: 'alert' }, s.error));
+  else kids.push(el('div', { class: 'hint' }, '图片只在生成时发送，不会保存到表情库。'));
+
+  host.replaceChildren(...kids);
+}
+
+function onPasteImage(ev) {
+  if (!selected || !selected.inputs.images.max) return;
+  const items = ev.clipboardData?.items;
+  if (!items) return;
+  for (const it of items) {
+    if (it.type.startsWith('image/')) {
+      const f = it.getAsFile();
+      if (!f) continue;
+      ev.preventDefault();
+      // Prefer empty required slot, else first empty, else slot 0
+      let idx = slots.findIndex((s, i) => i < selected.inputs.images.min && !s.file && !s.url);
+      if (idx < 0) idx = slots.findIndex((s) => !s.file && !s.url);
+      if (idx < 0) idx = 0;
+      setSlotFile(idx, f);
+      return;
+    }
+  }
 }
 
 function pick(tpl, scroll = true) {
@@ -161,9 +324,16 @@ function pick(tpl, scroll = true) {
   $('#tpl-title').textContent = tpl.title;
   const parts = [];
   if (tpl.inputs.texts.max) parts.push(`${tpl.inputs.texts.max} 段文字，每段最多 ${tpl.inputs.texts.maxLength} 字`);
-  if (tpl.inputs.images.max) parts.push(`${tpl.inputs.images.max} 张图片（PNG/JPG/GIF/WebP，单张 ≤2MB）`);
-  $('#tpl-desc').textContent = `需要：${parts.join('，') || '无输入'}`;
-  $('#tpl-notice').textContent = tpl.notice || '';
+  if (tpl.inputs.images.max) parts.push(`${tpl.inputs.images.max} 张图片（拖拽 / 点击 / 链接 / 粘贴）`);
+  const desc = (tpl.description || '').trim();
+  $('#tpl-desc').textContent = desc ? desc : `需要：${parts.join('，') || '无输入'}`;
+  // Do not show long provenance notice — description is enough; legal lives in A licenses/.
+  $('#tpl-notice').textContent = '';
+  $('#tpl-notice').classList.add('hidden');
+
+  slots.forEach((_, i) => revokeSlot(i));
+  slots = Array.from({ length: tpl.inputs.images.max }, () => ({ file: null, url: '', preview: null, error: '' }));
+
   const fields = [];
   for (let i = 0; i < tpl.inputs.texts.max; i++) {
     const id = `txt-${i}`;
@@ -172,13 +342,11 @@ function pick(tpl, scroll = true) {
       el('input', { id, type: 'text', name: id, maxlength: tpl.inputs.texts.maxLength, required: i < tpl.inputs.texts.min, placeholder: i === 0 ? '在这里输入要写的内容' : '' })));
   }
   for (let i = 0; i < tpl.inputs.images.max; i++) {
-    const id = `img-${i}`;
-    fields.push(el('div', { class: 'field' },
-      el('label', { for: id }, tpl.inputs.images.max > 1 ? `第 ${i + 1} 张图片` : '图片'),
-      el('input', { id, type: 'file', name: id, accept: TYPES.join(','), required: i < tpl.inputs.images.min }),
-      el('span', { class: 'hint' }, '只在生成时发送给服务器，不会保存。')));
+    fields.push(el('div', { class: 'field slot-field', id: `slot-${i}` }));
   }
   $('#tpl-fields').replaceChildren(...fields);
+  for (let i = 0; i < tpl.inputs.images.max; i++) renderSlot(i);
+
   msg('info', publicRenders ? '' : '在线制图暂未对访客开放，生成可能会失败。');
   history.replaceState(null, '', `#t=${encodeURIComponent(tpl.id)}`);
   if (scroll && window.matchMedia('(max-width: 760px)').matches) $('#maker-panel').scrollIntoView({ behavior: 'smooth' });
@@ -213,23 +381,30 @@ $('#maker-form').addEventListener('submit', async (ev) => {
     texts.push(v);
   }
   while (texts.length > tpl.inputs.texts.min && texts[texts.length - 1] === '') texts.pop();
+
+  const imageUrls = [];
   const files = [];
   for (let i = 0; i < tpl.inputs.images.max; i++) {
-    const f = $(`#img-${i}`).files?.[0];
-    if (!f) {
-      if (i < tpl.inputs.images.min) return msg('error', tpl.inputs.images.max > 1 ? `请选择第 ${i + 1} 张图片。` : '请先选择一张图片。');
-      continue;
+    const s = slots[i];
+    if (s.file) {
+      imageUrls.push(null);
+      files.push(s.file);
+    } else if (s.url) {
+      imageUrls.push(s.url);
+    } else if (i < tpl.inputs.images.min) {
+      return msg('error', tpl.inputs.images.max > 1 ? `请为第 ${i + 1} 张图片选择文件或填写链接。` : '请先拖入、选择或粘贴一张图片，也可填链接。');
+    } else {
+      imageUrls.push(null);
     }
-    if (!TYPES.includes(f.type)) return msg('error', '只支持 PNG / JPG / GIF / WebP 图片。');
-    if (f.size > MAX_PICK) return msg('error', `图片「${f.name}」超过 2MB 了，请换一张小一点的。`);
-    files.push(f);
   }
+
   const btn = $('#gen');
   btn.disabled = true;
   btn.textContent = '生成中…';
   msg('info', '正在生成，通常需要几秒钟…');
   try {
     const body = { template: tpl.id, version: tpl.version, texts };
+    if (imageUrls.some(Boolean)) body.imageUrls = imageUrls;
     let init;
     if (files.length) {
       const fd = new FormData();
@@ -258,6 +433,8 @@ $('#maker-form').addEventListener('submit', async (ev) => {
 });
 $('#result-dl').addEventListener('click', () => resultBlob && saveBlob(resultBlob, `${selected?.id || 'meme'}.png`));
 $('#result-copy').addEventListener('click', () => resultBlob && copyImageBlob(resultBlob));
+
+document.addEventListener('paste', onPasteImage);
 
 loadCategories();
 search(true);

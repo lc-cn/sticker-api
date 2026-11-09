@@ -136,6 +136,8 @@ test('templates expose preview sources; categories endpoint is public', async ()
     const t = (await ctx.app.inject({ method: 'GET', url: '/v1/templates' })).json().templates;
     assert.ok(t.length > 0);
     assert.ok(Array.isArray(t[0].preview));
+    assert.equal(t[0].notice, undefined, 'long provenance notice must not be returned to the UI');
+    assert.ok(typeof t[0].description === 'string');
     const c = await ctx.app.inject({ method: 'GET', url: '/v1/categories' });
     assert.equal(c.statusCode, 200);
     const cats = c.json().categories;

@@ -33,6 +33,19 @@ test('public reads need no login; fixture search/detail/content work', async () 
     assert.equal(c.headers['cache-control'], 'no-store');
     assert.equal(c.headers.location, `https://raw.githubusercontent.com/example-owner/sticker-assets/${ctx.gh.head()}/${det.json().asset.sources[0].url.split(`${ctx.gh.head()}/`)[1]}`);
 
+    // Short public URL (canonical 12-hex docKey + real ext)
+    const asset = det.json().asset;
+    assert.match(asset.contentUrl, /^\/v1\/asset\/[0-9a-f]{12}\.(png|jpg|gif)$/);
+    assert.match(body.items[0].contentUrl, /^\/v1\/asset\/[0-9a-f]{12}\./);
+    const short = await ctx.app.inject({ method: 'GET', url: asset.contentUrl });
+    assert.equal(short.statusCode, 302);
+    assert.equal(short.headers.location, c.headers.location);
+    assert.equal(short.headers['x-content-sha256'], asset.object.sha256);
+    // wrong ext → 404; too-short nonsense → 404
+    const badExt = asset.contentUrl.replace(/\.(png|jpg|gif)$/, '.webp');
+    assert.equal((await ctx.app.inject({ method: 'GET', url: badExt })).statusCode, 404);
+    assert.equal((await ctx.app.inject({ method: 'GET', url: '/v1/asset/deadbeef.png' })).statusCode, 404);
+
     const missing = await ctx.app.inject({ method: 'GET', url: `/v1/assets/sha256:${'0'.repeat(64)}` });
     assert.equal(missing.statusCode, 404);
     assert.equal(missing.json().error.code, 'not_found');
@@ -337,6 +350,25 @@ test('kill switches and unsupported schema fail closed', async () => {
     const r = await ctx.app.inject({ method: 'GET', url: '/v1/assets' });
     assert.equal(r.statusCode, 503);
     assert.equal(r.json().error.code, 'repo_schema_unsupported');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('short /v1/asset/<hex>.<ext> accepts longer prefixes and keeps legacy content URL', async () => {
+  const ctx = await createCtx();
+  try {
+    const item = (await ctx.app.inject({ method: 'GET', url: '/v1/assets?limit=1' })).json().items[0];
+    const sha = item.id.replace(/^sha256:/, '');
+    const ext = item.contentUrl.split('.').pop();
+    const full = await ctx.app.inject({ method: 'GET', url: `/v1/asset/${sha}.${ext}` });
+    assert.equal(full.statusCode, 302);
+    const legacy = await ctx.app.inject({ method: 'GET', url: `/v1/assets/${item.id}/content` });
+    assert.equal(full.headers.location, legacy.headers.location);
+    // 8-char prefix of a known fixture asset should resolve uniquely in the small fixture
+    const eight = await ctx.app.inject({ method: 'GET', url: `/v1/asset/${sha.slice(0, 8)}.${ext}` });
+    assert.equal(eight.statusCode, 302);
+    assert.equal(eight.headers.location, legacy.headers.location);
   } finally {
     await ctx.close();
   }

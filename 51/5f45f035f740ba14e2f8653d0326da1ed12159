@@ -1,0 +1,20 @@
+openapi.yaml
+  h_b64ebe5d3c7815 41,44
+public/assets/admin.js
+  h_b64ebe5d3c7815 196,251
+src/routes/api.ts
+  h_b64ebe5d3c7815 70-71
+src/services/assets.ts
+  h_b64ebe5d3c7815 134,142,149,156-166,201,209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "515f45f035f740ba14e2f8653d0326da1ed12159",
+  "prompts": {},
+  "humans": {
+    "h_b64ebe5d3c7815": {
+      "author": "Class Liu <chunlang.liu@rdc-west.com>"
+    }
+  }
+}

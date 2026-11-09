@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: Stateless API over the A repo (sticker-assets). All reads pinned to one A commit; all writes are one atomic A commit.
 servers:
-  - url: https://sticker-api.example.vercel.app
+  - url: https://sticker.l2cl.link
 components:
   securitySchemes:
     machine: { type: http, scheme: bearer, description: "Scoped machine token (only sha256 stored server-side)" }
@@ -41,7 +41,9 @@ components:
     Err: { description: Error, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 paths:
   /v1/health:
-    get: { summary: Liveness + config warnings count, responses: { "200": { description: ok } } }
+    get: { summary: "Liveness + config warnings count; flags: repoConfigured, writes, renders, publicRenders, content, adminLogin", responses: { "200": { description: ok } } }
+  /v1/categories:
+    get: { summary: "Public taxonomy from A config/taxonomy.json with live counts", responses: { "200": { description: "{commit, categories[{slug,label,count}]}" } } }
   /v1/assets:
     get:
       summary: Search (public)
@@ -105,11 +107,19 @@ paths:
     parameters: [{ $ref: "#/components/parameters/AssetId" }, { name: source, in: query, schema: { type: string } }]
     get: { summary: "302 to mirror candidate or raw (pinned commit)", responses: { "302": { description: "Location + x-content-sha256 + x-asset-commit" }, "410": { $ref: "#/components/responses/Err" } } }
   /v1/templates:
-    get: { summary: Active templates with renderable/unavailableReason, responses: { "200": { description: "{commit, templates[]}" } } }
+    get: { summary: "Active templates with inputs, tags, preview (mirror URLs of the base image, pinned to commit), renderable/unavailableReason", responses: { "200": { description: "{commit, templates[]}" } } }
   /v1/renders:
     post:
       summary: Render a light-v1 template to PNG
-      security: [{ machine: [] }, { adminSession: [] }]
+      description: |
+        Authenticated: machine token with scope `render` (or admin session + CSRF); limit RENDER_PER_MINUTE per principal.
+        Anonymous (homepage): when PUBLIC_RENDERS_ENABLED=true, a request with NO Authorization header and NO admin
+        cookie is accepted as an anonymous principal, rate limited per client IP (PUBLIC_RENDER_PER_MINUTE, default 6;
+        PUBLIC_RENDER_PER_DAY, default 100) → 429 + Retry-After. Counters are in memory per server instance (not a
+        global quota). Client IP = x-real-ip / first x-forwarded-for hop only behind a trusted proxy (Vercel), else
+        the socket peer. Anonymous callers may only reference active (public) assetIds. Same size/time limits apply.
+        When disabled, anonymous requests get 401 as before.
+      security: [{ machine: [] }, { adminSession: [] }, {}]
       requestBody:
         content:
           application/json: { schema: { type: object, required: [template], properties: { template: { type: string }, version: { type: integer }, texts: { type: array, items: { type: string } }, params: { type: object }, assetIds: { type: array, items: { type: string } } } } }
@@ -121,13 +131,43 @@ paths:
       security: [{ machine: [] }, { adminSession: [] }]
       parameters: [{ name: op, in: path, required: true, schema: { type: string } }]
       responses: { "200": { description: "{commit, event}" }, "403": { $ref: "#/components/responses/Err" } }
+  /v1/collect/sources:
+    get:
+      summary: Collection sources registered in A config/collect-sources.json (admin session or scope collect:trigger)
+      security: [{ machine: [] }, { adminSession: [] }]
+      responses: { "200": { description: "{commit, workflow, sources[{id,label,approved,description}]}" }, "401": { $ref: "#/components/responses/Err" }, "403": { $ref: "#/components/responses/Err" } }
   /v1/collect-runs:
-    post: { summary: Not in v1 (collection runs in A Actions), responses: { "501": { $ref: "#/components/responses/Err" } } }
+    get:
+      summary: Recent runs of A's collect workflow (GitHub Actions)
+      security: [{ machine: [] }, { adminSession: [] }]
+      responses: { "200": { description: "{workflow, runsUrl, runs[{id,runNumber,title,event,status,conclusion,createdAt,url}]}" }, "503": { description: "actions_permission: writer App lacks Actions: Read and write" } }
+    post:
+      summary: "Dispatch A's collect workflow (workflow_dispatch, inputs source + dry_run). Cookie sessions need Origin + X-CSRF-Token."
+      security: [{ machine: [] }, { adminSession: [] }]
+      requestBody:
+        content:
+          application/json: { schema: { type: object, required: [source], additionalProperties: false, properties: { source: { type: string, pattern: "^[a-z0-9][a-z0-9-]{0,31}$" }, dryRun: { type: boolean, default: true } } } }
+      responses:
+        "202": { description: "{dispatched, source, dryRun, workflow, runsUrl}" }
+        "404": { description: unknown_source }
+        "429": { description: "per-source cooldown (COLLECT_COOLDOWN_SECONDS, per instance) + Retry-After" }
+        "503": { description: "actions_permission (writer App needs Actions: Read and write) | actions_unconfigured" }
   /v1/auth/github/start:
-    get: { summary: Begin admin GitHub login (state + PKCE S256), responses: { "302": { description: to GitHub } } }
+    get:
+      summary: Begin admin GitHub login (state + PKCE S256)
+      parameters: [{ name: next, in: query, schema: { enum: [admin] }, description: "admin → callback redirects to /admin (non-admin → /admin?login=forbidden)" }]
+      responses: { "302": { description: to GitHub } }
   /v1/auth/github/callback:
     get: { summary: Finish login; non-allowlisted numeric id → 403 and no session, responses: { "303": { description: to /v1/auth/session }, "400": { $ref: "#/components/responses/Err" }, "403": { $ref: "#/components/responses/Err" } } }
   /v1/auth/session:
-    get: { summary: "{authenticated, admin, expiresAt, csrfToken}", responses: { "200": { description: ok } } }
+    get: { summary: "{authenticated, admin, expiresAt, csrfToken, repo}", responses: { "200": { description: ok } } }
   /v1/auth/logout:
     post: { summary: Clear session (CSRF-checked when a session exists), responses: { "204": { description: ok } } }
+  /:
+    get: { summary: "Public homepage (HTML, CSP)", responses: { "200": { description: text/html } } }
+  /admin:
+    get: { summary: "Admin console shell (HTML, no data; all data via session-gated APIs)", responses: { "200": { description: text/html } } }
+  /docs:
+    get: { summary: "Human API docs page", responses: { "200": { description: text/html } } }
+  /openapi.yaml:
+    get: { summary: "This document", responses: { "200": { description: text/yaml } } }

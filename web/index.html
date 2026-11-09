@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>小智表情包 · 中文表情包搜索与在线梗图制作</title>
+  <meta name="description" content="小智表情包：新鲜的中文表情包，按分类和关键词搜索，一键复制链接；还能套用梗图模板在线生成表情。">
+  <meta name="color-scheme" content="light dark">
+  <meta property="og:title" content="小智表情包">
+  <meta property="og:description" content="中文表情包搜索与在线梗图制作">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/style.css">
+  <script type="module" src="/assets/home.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="/"><img src="/assets/favicon.svg" alt=""><span>小智表情包</span></a>
+      <nav class="nav" aria-label="主导航">
+        <a href="#stickers">表情</a>
+        <a href="#maker">制图</a>
+        <a href="/docs">API</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="hero">
+      <h1>小智表情包</h1>
+      <p>新鲜的中文表情包，搜一搜就有；没有合适的？套个梗图模板自己做一张。</p>
+    </div>
+
+    <section class="block" id="stickers" aria-labelledby="stickers-title">
+      <div class="section-head">
+        <h2 id="stickers-title">找表情</h2>
+        <span class="muted small" id="result-count"></span>
+      </div>
+      <form class="search" id="search-form" role="search">
+        <input id="q" type="search" name="q" maxlength="64" placeholder="搜关键词，比如：哈哈、上班、晚安" autocomplete="off" aria-label="搜索表情">
+        <button class="btn primary" type="submit">搜索</button>
+      </form>
+      <div class="chips" id="categories" role="group" aria-label="分类"></div>
+      <div class="grid" id="grid" aria-live="polite"></div>
+      <div class="empty hidden" id="empty">
+        <span class="face" aria-hidden="true">(・ω・)</span>
+        <div id="empty-text">表情还在路上，这个分类暂时空空的。</div>
+        <div class="small">换个关键词试试，或者去下面<a href="#maker">做一张梗图</a>。</div>
+      </div>
+      <div class="alert error hidden" id="grid-error"></div>
+      <div class="load-more"><button class="btn hidden" id="more" type="button">加载更多</button></div>
+    </section>
+
+    <section class="block" id="maker" aria-labelledby="maker-title">
+      <div class="section-head">
+        <h2 id="maker-title">在线制图</h2>
+        <span class="muted small">选一个模板，填上文字或放上图片，一键生成</span>
+      </div>
+      <div class="maker">
+        <div>
+          <div class="tpl-grid" id="templates" role="group" aria-label="梗图模板"></div>
+          <div class="alert error hidden" id="tpl-error"></div>
+        </div>
+        <div class="panel" id="maker-panel">
+          <div id="maker-empty" class="muted">← 先从左边选一个模板</div>
+          <form id="maker-form" class="hidden" novalidate>
+            <h3 id="tpl-title"></h3>
+            <div class="muted small" id="tpl-desc"></div>
+            <div id="tpl-fields"></div>
+            <div class="actions">
+              <button class="btn primary" type="submit" id="gen">生成梗图</button>
+            </div>
+            <div class="alert hidden" id="maker-msg" role="status"></div>
+            <div class="result hidden" id="result">
+              <img id="result-img" alt="生成的梗图">
+              <div class="actions">
+                <button class="btn" type="button" id="result-dl">下载</button>
+                <button class="btn" type="button" id="result-copy">复制图片</button>
+              </div>
+            </div>
+            <div class="notice" id="tpl-notice"></div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="detail" aria-labelledby="detail-title">
+    <div class="dialog-body">
+      <div class="dialog-head">
+        <h3 id="detail-title"></h3>
+        <button class="icon-btn" type="button" id="detail-close" aria-label="关闭">×</button>
+      </div>
+      <div class="detail-img" id="detail-img"></div>
+      <dl class="kv">
+        <dt>分类</dt><dd id="detail-cats"></dd>
+        <dt>标签</dt><dd id="detail-tags"></dd>
+        <dt>上传时间</dt><dd id="detail-time"></dd>
+        <dt>尺寸</dt><dd id="detail-size"></dd>
+      </dl>
+      <div class="actions">
+        <button class="btn primary" type="button" id="detail-copy">复制图片链接</button>
+        <button class="btn" type="button" id="detail-dl">下载</button>
+        <a class="btn" id="detail-open" target="_blank" rel="noopener noreferrer">打开原图</a>
+      </div>
+    </div>
+  </dialog>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="links">
+        <a href="/docs">API 文档</a>
+        <a href="/openapi.yaml">openapi.yaml</a>
+        <a href="https://github.com/lc-cn/sticker-api" target="_blank" rel="noopener noreferrer">GitHub · sticker-api</a>
+        <a href="https://github.com/lc-cn/sticker-assets" target="_blank" rel="noopener noreferrer">GitHub · sticker-assets</a>
+      </div>
+      <p>部分模板素材来自网络（MemeCrafters/meme-generator），如有侵权请<a href="https://github.com/lc-cn/sticker-assets/issues/new" target="_blank" rel="noopener noreferrer">联系删除</a>。</p>
+      <p class="small">图片经 jsDelivr 等公共镜像分发，时间均为北京时间。</p>
+    </div>
+  </footer>
+</body>
+</html>

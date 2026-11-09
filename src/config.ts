@@ -48,6 +48,22 @@ export type AppConfig = {
   renderFonts: string | undefined;
   renderTimeoutMs: number;
   renderPerMinute: number;
+  /**
+   * Anonymous (no token) renders for the public homepage. Off by default. Limits are per client IP and
+   * kept IN MEMORY PER INSTANCE (each warm Vercel instance has its own counters) — not a global quota.
+   */
+  publicRendersEnabled: boolean;
+  publicRenderPerMinute: number;
+  publicRenderPerDay: number;
+  /**
+   * Trust `x-real-ip` / first `x-forwarded-for` hop for the client IP. Only safe behind a proxy that
+   * overwrites these headers (Vercel does). Default: on when running on Vercel (VERCEL=1), else off.
+   */
+  trustProxyHeaders: boolean;
+  /** A-repo Actions workflow file dispatched by POST /v1/collect-runs. */
+  collectWorkflow: string;
+  /** Minimum seconds between two collect dispatches for the same source (per instance). */
+  collectCooldownSeconds: number;
   /** Non-fatal config problems, surfaced on /v1/health for the operator (no secrets). */
   warnings: string[];
 };
@@ -173,6 +189,11 @@ function privateKey(raw: string | undefined): string | undefined {
   return Buffer.from(raw, 'base64').toString('utf8');
 }
 
+function collectWorkflow(v: string): string {
+  if (!/^[A-Za-z0-9_.-]{1,64}\.ya?ml$/.test(v)) throw new Error('Invalid COLLECT_WORKFLOW: workflow file name like collect.yml');
+  return v;
+}
+
 export function loadConfig(env: Env = process.env, opts: { allowHttpLoopback?: boolean } = {}): AppConfig {
   const warnings: string[] = [];
   const allowHttp = opts.allowHttpLoopback ?? env.STICKER_ALLOW_HTTP_LOOPBACK === '1';
@@ -257,6 +278,12 @@ export function loadConfig(env: Env = process.env, opts: { allowHttpLoopback?: b
     renderFonts: str(env, 'RENDER_FONTS'),
     renderTimeoutMs: int(env, 'RENDER_TIMEOUT_MS', 10000, 500, 10000),
     renderPerMinute: int(env, 'RENDER_PER_MINUTE', 30, 1, 600),
+    publicRendersEnabled: bool(env, 'PUBLIC_RENDERS_ENABLED', false),
+    publicRenderPerMinute: int(env, 'PUBLIC_RENDER_PER_MINUTE', 6, 1, 120),
+    publicRenderPerDay: int(env, 'PUBLIC_RENDER_PER_DAY', 100, 1, 10000),
+    trustProxyHeaders: bool(env, 'TRUST_PROXY_HEADERS', env.VERCEL === '1'),
+    collectWorkflow: collectWorkflow(str(env, 'COLLECT_WORKFLOW') ?? 'collect.yml'),
+    collectCooldownSeconds: int(env, 'COLLECT_COOLDOWN_SECONDS', 300, 10, 86400),
     warnings,
   };
 }

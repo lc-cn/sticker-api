@@ -8,7 +8,10 @@ import { validateImage } from '../domain/image.js';
 import { parseIfMatch, parseJsonObject } from '../domain/metadata.js';
 import { parseMultipart, type MultipartBody } from '../http/multipart.js';
 import type { AssetService, Receipt } from '../services/assets.js';
-import { RENDER_IMAGE_MAX, RENDER_IMAGES_TOTAL_MAX, type RenderService } from '../services/renders.js';
+import { RENDER_IMAGE_MAX, RENDER_IMAGES_TOTAL_MAX, type RenderCaller, type RenderService } from '../services/renders.js';
+import type { CollectService } from '../services/collect.js';
+import { parseCookies, SESSION_COOKIE } from '../auth/cookies.js';
+import { clientIp, ipBucket } from '../http/client-ip.js';
 
 const UPLOAD_MAX = 2 * 1024 * 1024;
 
@@ -28,9 +31,9 @@ async function multipart(req: FastifyRequest, opts: Parameters<typeof parseMulti
 
 export async function registerApiRoutes(
   app: FastifyInstance,
-  deps: { config: AppConfig; keys: SessionKeys | null; assets: AssetService; renders: RenderService },
+  deps: { config: AppConfig; keys: SessionKeys | null; assets: AssetService; renders: RenderService; collect: CollectService },
 ): Promise<void> {
-  const { config, keys, assets, renders } = deps;
+  const { config, keys, assets, renders, collect } = deps;
 
   app.get('/v1/health', async (_req, reply) => {
     noStore(reply);
@@ -39,6 +42,7 @@ export async function registerApiRoutes(
       repoConfigured: !!config.repo,
       writes: config.writesEnabled && !!config.githubApp && config.idempotencyKeys.length > 0,
       renders: config.rendersEnabled,
+      publicRenders: config.rendersEnabled && config.publicRendersEnabled,
       content: config.contentEnabled,
       adminLogin: !!config.login && !!keys,
       warningCount: config.warnings.length, // details only in server logs, not public
@@ -76,6 +80,11 @@ export async function registerApiRoutes(
       .header('x-content-sha256', t.sha256)
       .header('x-asset-commit', t.commit)
       .redirect(t.url, 302);
+  });
+
+  app.get('/v1/categories', async (_req, reply) => {
+    noStore(reply);
+    return assets.categories();
   });
 
   app.get('/v1/templates', async (_req, reply) => {
@@ -137,13 +146,33 @@ export async function registerApiRoutes(
     return assets.operation(principal, id, idem);
   });
 
-  app.post('/v1/collect-runs', async (req) => {
+  // ---------- collection (admin session or machine token with collect:trigger) ----------
+  app.get('/v1/collect/sources', async (req, reply) => {
+    noStore(reply);
     requirePrincipal(req, config, keys, 'collect:trigger');
-    throw new AppError(501, 'not_implemented', 'Collection runs live in A Actions (workflow_dispatch); no approved adapters in v1');
+    return collect.sources();
+  });
+
+  app.get('/v1/collect-runs', async (req, reply) => {
+    noStore(reply);
+    requirePrincipal(req, config, keys, 'collect:trigger');
+    return collect.runs();
+  });
+
+  app.post('/v1/collect-runs', async (req, reply) => {
+    noStore(reply);
+    requirePrincipal(req, config, keys, 'collect:trigger');
+    return reply.code(202).send(await collect.trigger(req.body));
   });
 
   app.post('/v1/renders', async (req, reply) => {
-    const principal = requirePrincipal(req, config, keys, 'render');
+    // No Authorization header and no admin cookie → anonymous homepage visitor (only if enabled).
+    // Anything carrying credentials goes through the normal checks (bad token → 401, CSRF for cookies).
+    const anonymous = req.headers.authorization === undefined && !parseCookies(req.headers.cookie)[SESSION_COOKIE];
+    const principal: RenderCaller =
+      anonymous && config.publicRendersEnabled
+        ? { kind: 'anonymous', ip: ipBucket(clientIp(req, config.trustProxyHeaders)) }
+        : requirePrincipal(req, config, keys, 'render');
     let input: { template: unknown; version?: unknown; texts?: unknown; params?: unknown; assetIds?: unknown };
     let images: Buffer[] = [];
     const ct = String(req.headers['content-type'] ?? '');

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API 文档 · 小智表情包</title>
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="/"><img src="/assets/favicon.svg" alt=""><span>小智表情包</span></a>
+      <nav class="nav" aria-label="主导航">
+        <a href="/#stickers">表情</a>
+        <a href="/#maker">制图</a>
+        <a href="/docs">API</a>
+      </nav>
+    </div>
+  </header>
+  <main class="wrap doc">
+    <div class="hero">
+      <h1>API 文档</h1>
+      <p>完整定义见 <a href="/openapi.yaml">openapi.yaml</a>（OpenAPI 3），可以导入 Swagger Editor、Postman 等工具查看。</p>
+    </div>
+
+    <h2>公开接口（无需登录）</h2>
+    <table>
+      <tr><th>接口</th><th>说明</th></tr>
+      <tr><td><code>GET /v1/assets?q=&amp;category=&amp;tag=&amp;limit=&amp;cursor=</code></td><td>搜索表情，返回 <code>items[].sources</code>（镜像链接，按优先级排列）和 <code>nextCursor</code>。</td></tr>
+      <tr><td><code>GET /v1/assets/{id}</code></td><td>单张表情详情。</td></tr>
+      <tr><td><code>GET /v1/assets/{id}/content</code></td><td>302 跳到图片（首选镜像）。</td></tr>
+      <tr><td><code>GET /v1/categories</code></td><td>分类列表与数量。</td></tr>
+      <tr><td><code>GET /v1/templates</code></td><td>梗图模板，含输入要求和缩略图 <code>preview</code>。</td></tr>
+      <tr><td><code>POST /v1/renders</code></td><td>生成梗图，返回 PNG。带令牌调用，或在开放访客制图时匿名调用（按 IP 限流）。</td></tr>
+      <tr><td><code>GET /v1/health</code></td><td>服务状态。</td></tr>
+    </table>
+
+    <h2>示例</h2>
+    <pre><code>curl 'https://sticker.l2cl.link/v1/assets?q=哈哈&amp;limit=10'
+
+curl -X POST https://sticker.l2cl.link/v1/renders \
+  -H 'content-type: application/json' \
+  -d '{"template":"good-news","texts":["今天不加班"]}' -o good-news.png
+
+# 需要图片的模板：multipart，字段 request（JSON）+ image（文件，单张 ≤1MB）
+curl -X POST https://sticker.l2cl.link/v1/renders \
+  -F 'request={"template":"need"}' -F 'image=@me.png' -o need.png</code></pre>
+
+    <h2>限制</h2>
+    <p>匿名制图按客户端 IP 限流（默认每分钟 6 次、每天 100 次），超出返回 <code>429</code> 和 <code>Retry-After</code>。计数在每个服务实例内存中，不是全局精确配额。机器调用请使用令牌。</p>
+
+    <h2>素材与版权</h2>
+    <p>素材仓库：<a href="https://github.com/lc-cn/sticker-assets">lc-cn/sticker-assets</a>；服务代码：<a href="https://github.com/lc-cn/sticker-api">lc-cn/sticker-api</a>。部分模板素材来自网络（MemeCrafters/meme-generator），如有侵权请<a href="https://github.com/lc-cn/sticker-assets/issues/new">联系删除</a>。</p>
+  </main>
+  <footer class="site-footer"><div class="wrap"><a href="/">← 返回首页</a></div></footer>
+</body>
+</html>

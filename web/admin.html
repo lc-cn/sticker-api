@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>管理后台 · 小智表情包</title>
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/style.css">
+  <script type="module" src="/assets/admin.js"></script>
+</head>
+<body>
+  <!-- Static shell only. No admin data is embedded here; it is fetched from session-gated /v1 APIs. -->
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="/"><img src="/assets/favicon.svg" alt=""><span>小智表情包</span></a>
+      <span class="muted small">管理后台</span>
+      <div class="user-box hidden" id="user-box">
+        <span id="user-name"></span>
+        <button class="btn sm" type="button" id="logout">退出登录</button>
+      </div>
+    </div>
+  </header>
+  <main class="wrap" id="app">
+    <div class="center-card panel" id="view-loading"><p class="muted">正在检查登录状态…</p></div>
+  </main>
+</body>
+</html>

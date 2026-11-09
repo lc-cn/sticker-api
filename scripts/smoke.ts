@@ -73,6 +73,11 @@ try {
   check('content 302', c.status === 302 && /^https:\/\/raw\.githubusercontent\.com\/example-owner\/sticker-assets\/[0-9a-f]{40}\/objects\//.test(c.headers.get('location') ?? ''), c.headers.get('location') ?? '');
   const tpl = (await (await fetch(`${base}/v1/templates`)).json()) as any;
   check('GET /v1/templates', tpl.templates?.length >= 1);
+  const home = await fetch(`${base}/`);
+  check('GET / homepage (HTML + CSP)', home.status === 200 && /script-src 'self'/.test(home.headers.get('content-security-policy') ?? '') && (await home.text()).includes('小智表情包'));
+  const adminPage = await fetch(`${base}/admin`);
+  check('GET /admin shell (no-store)', adminPage.status === 200 && adminPage.headers.get('cache-control') === 'no-store');
+  check('GET /assets/home.js', (await fetch(`${base}/assets/home.js`)).status === 200);
   if (SYSTEM_CJK_FONT) {
     const r = await fetch(`${base}/v1/renders`, { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: JSON.stringify({ template: 'caption-bar', texts: ['冒烟测试通过'], assetIds: [upj.asset.id] }) });
     const buf = Buffer.from(await r.arrayBuffer());

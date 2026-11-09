@@ -6,7 +6,8 @@ import { clearCookie, hostCookie, OAUTH_TX_COOKIE, parseCookies, SESSION_COOKIE 
 import { randomToken, safeEqual, seal, signPayload, unseal, type SessionKeys } from '../auth/crypto.js';
 import { assertCsrf, csrfTokenFor, readAdminSession, SESSION_PURPOSE, type SessionPayload } from '../auth/principal.js';
 
-type OAuthTx = { state: string; verifier: string; exp: number };
+/** `next`: fixed enum (never a URL) — where to send the browser afterwards. Absent = legacy JSON flow. */
+type OAuthTx = { state: string; verifier: string; exp: number; next?: 'admin' };
 const TX_AAD = 'oauth-tx.v1';
 const TX_TTL = 300;
 
@@ -26,13 +27,14 @@ export async function registerAuthRoutes(
     return { login: config.login, keys };
   };
 
-  app.get('/v1/auth/github/start', async (_req, reply) => {
+  app.get('/v1/auth/github/start', async (req, reply) => {
     const { login, keys: k } = loginReady();
     noStore(reply);
+    const next = (req.query as { next?: string }).next === 'admin' ? 'admin' : undefined;
     const state = randomToken(32);
     const verifier = randomToken(48); // 64 chars, RFC 7636 range 43..128
     const challenge = createHash('sha256').update(verifier).digest('base64url');
-    const tx: OAuthTx = { state, verifier, exp: Math.floor(Date.now() / 1000) + TX_TTL };
+    const tx: OAuthTx = { state, verifier, exp: Math.floor(Date.now() / 1000) + TX_TTL, ...(next ? { next } : {}) };
     const url = new URL(`${config.githubOAuthBase}/login/oauth/authorize`);
     url.searchParams.set('client_id', login.clientId);
     url.searchParams.set('redirect_uri', login.redirectUri); // fixed, registered; never from the request
@@ -53,7 +55,11 @@ export async function registerAuthRoutes(
     const tx = unseal<OAuthTx>(k.enc, TX_AAD, cookies[OAUTH_TX_COOKIE]);
     // Always burn the transaction cookie and any previous admin session (no cross-account residue).
     reply.header('set-cookie', [clearCookie(OAUTH_TX_COOKIE), clearCookie(SESSION_COOKIE)]);
-    if (q.error) throw new AppError(401, 'oauth_denied', 'GitHub authorization was not granted');
+    const toAdmin = tx?.next === 'admin';
+    if (q.error) {
+      if (toAdmin) return reply.redirect('/admin?login=denied', 303);
+      throw new AppError(401, 'oauth_denied', 'GitHub authorization was not granted');
+    }
     const now = Math.floor(Date.now() / 1000);
     if (!tx || !(tx.exp > now) || typeof q.state !== 'string' || !safeEqual(q.state, tx.state)) {
       throw new AppError(400, 'oauth_state_invalid', 'Login state invalid or expired; start again');
@@ -117,6 +123,8 @@ export async function registerAuthRoutes(
     const id = typeof user.id === 'number' && Number.isSafeInteger(user.id) && user.id > 0 ? String(user.id) : null;
     if (!id) throw new AppError(503, 'oauth_upstream', 'Malformed GitHub identity');
     if (!config.adminGithubUserIds.has(id)) {
+      // Same outcome as the JSON flow (no session issued); the admin page just shows a friendly message.
+      if (toAdmin) return reply.code(303).header('location', '/admin?login=forbidden').send();
       throw new AppError(403, 'forbidden', 'This GitHub account is not an administrator');
     }
     const iat = Math.floor(Date.now() / 1000);
@@ -133,7 +141,7 @@ export async function registerAuthRoutes(
       clearCookie(OAUTH_TX_COOKIE),
       hostCookie(SESSION_COOKIE, signPayload(k.sign, SESSION_PURPOSE, payload), config.sessionTtlSeconds),
     ]);
-    return reply.redirect('/v1/auth/session', 303);
+    return reply.redirect(toAdmin ? '/admin' : '/v1/auth/session', 303);
   });
 
   app.get('/v1/auth/session', async (req, reply) => {
@@ -145,6 +153,8 @@ export async function registerAuthRoutes(
       admin: { githubId: admin.githubId, login: admin.login },
       expiresAt: new Date(admin.exp * 1000).toISOString(),
       csrfToken: csrfTokenFor(keys!, admin.nonce),
+      // A repo coordinates (public anyway) so the admin page can link commits.
+      repo: config.repo ? { owner: config.repo.owner, repo: config.repo.repo } : null,
     };
   });
 

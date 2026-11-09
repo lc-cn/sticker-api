@@ -15,6 +15,8 @@ import { registerApiRoutes } from './routes/api.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { AssetService } from './services/assets.js';
 import { RenderService } from './services/renders.js';
+import { CollectService } from './services/collect.js';
+import { registerWebRoutes } from './routes/web.js';
 
 export const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -57,6 +59,7 @@ export async function buildApp(deps: AppDeps) {
   const assets = new AssetService(config, gh, head, publisher);
   const renderer = new Renderer(parseFonts(config.renderFonts, PROJECT_ROOT), config.renderTimeoutMs);
   const renders = new RenderService(config, assets, renderer);
+  const collect = new CollectService(config, gh, assets);
 
   app.addHook('onSend', async (_req, reply, payload) => {
     reply.header('x-content-type-options', 'nosniff');
@@ -90,6 +93,7 @@ export async function buildApp(deps: AppDeps) {
   });
 
   await registerAuthRoutes(app, { config, keys, fetchImpl: deps.fetchImpl });
-  await registerApiRoutes(app, { config, keys, assets, renders });
+  await registerApiRoutes(app, { config, keys, assets, renders, collect });
+  await registerWebRoutes(app, { config });
   return { app, assets, renders, head };
 }

@@ -254,6 +254,18 @@ export class AssetService {
     return { commit: snap.commit, total: candidates.length, truncated, items, nextCursor: cursorFor(candidates.length) };
   }
 
+  /** Public taxonomy (A config/taxonomy.json) with live counts from the catalog when available. */
+  async categories() {
+    const snap = await this.snapshot();
+    const t = await snap.json<{ categories: Array<{ slug: string; label: string }> }>('config/taxonomy.json');
+    const catalog = await snap.json<Catalog & { categories?: Record<string, number> }>(INDEX_PATHS.catalog);
+    const counts = (catalog as { categories?: Record<string, number> } | null)?.categories ?? {};
+    return {
+      commit: snap.commit,
+      categories: (t?.categories ?? []).map((c) => ({ slug: c.slug, label: c.label, count: catalog ? (typeof counts[c.slug] === 'number' ? counts[c.slug]! : 0) : null })),
+    };
+  }
+
   async templatesIndex(snap?: Snapshot) {
     const s = snap ?? (await this.snapshot());
     const catalog = await s.json<Catalog>(INDEX_PATHS.catalog);

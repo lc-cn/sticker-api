@@ -7,6 +7,11 @@ import { registry, type Catalog } from '../repo/contract.js';
 import type { Snapshot } from '../repo/snapshot.js';
 import { composeSvg, type LightTemplate, type Renderer } from '../render/renderer.js';
 import type { AssetService } from './assets.js';
+import { SlidingLimiter } from '../http/rate-limit.js';
+
+/** Unauthenticated homepage visitor; identified only by (bucketed) client IP, never persisted. */
+export type AnonymousPrincipal = { kind: 'anonymous'; ip: string };
+export type RenderCaller = Principal | AnonymousPrincipal;
 
 /** Plan §5: render inputs ≤1 MiB each, ≤2 MiB total; output ≤2 MiB. */
 export const RENDER_IMAGE_MAX = 1024 * 1024;
@@ -24,12 +29,19 @@ export type RenderInput = {
 
 export class RenderService {
   private hits = new Map<string, number[]>();
+  private readonly anon: SlidingLimiter;
 
   constructor(
     private readonly config: AppConfig,
     private readonly assets: AssetService,
     private readonly renderer: Renderer,
-  ) {}
+  ) {
+    // Per-IP, per-instance (see SlidingLimiter); token principals keep the existing per-minute limit.
+    this.anon = new SlidingLimiter([
+      { limit: config.publicRenderPerMinute, ms: 60_000 },
+      { limit: config.publicRenderPerDay, ms: 86_400_000 },
+    ]);
+  }
 
   private async catalogTemplates(snap: Snapshot) {
     const c = await snap.json<Catalog>('indexes/catalog.json');
@@ -63,21 +75,34 @@ export class RenderService {
 
   async list() {
     const snap = await this.assets.snapshot();
+    const mirrors = await this.assets.mirrors(snap);
     const out = [];
     for (const e of await this.catalogTemplates(snap)) {
       const t = await snap.json<LightTemplate>(e.path);
       if (!t) continue;
       const r = this.renderable(t);
+      // Thumbnail = the first image layer's file (template base image), pinned to this commit via mirrors.
+      const base = t.layers.find((l) => l.type === 'image' && 'file' in l && typeof (l as { file?: unknown }).file === 'string') as { file: string } | undefined;
+      const dir = e.path.replace(/template\.json$/, '');
+      const preview = base ? this.assets.sources(snap.commit, dir + base.file, mirrors) : [];
       out.push({
         id: t.id, version: t.version, title: t.title, inputs: t.inputs, params: t.params, output: t.output,
         canvas: { width: t.canvas.width, height: t.canvas.height }, licenseIds: t.licenseIds, notice: t.notice,
+        tags: (t as { tags?: string[] }).tags ?? [], preview,
         renderable: r.ok, unavailableReason: r.reason,
       });
     }
     return { commit: snap.commit, templates: out };
   }
 
-  private rateLimit(p: Principal) {
+  private rateLimit(p: RenderCaller) {
+    if (p.kind === 'anonymous') {
+      const wait = this.anon.take(`anon:${p.ip}`);
+      if (wait !== null) {
+        throw new AppError(429, 'rate_limited', 'Too many anonymous renders from this IP (per-instance limit)', { headers: { 'retry-after': String(wait) } });
+      }
+      return;
+    }
     const key = principalScope(p);
     const now = Date.now();
     const arr = (this.hits.get(key) ?? []).filter((t) => now - t < 60_000);
@@ -88,7 +113,7 @@ export class RenderService {
     this.hits.set(key, arr);
   }
 
-  async render(principal: Principal, input: RenderInput): Promise<{ png: Buffer; template: string }> {
+  async render(principal: RenderCaller, input: RenderInput): Promise<{ png: Buffer; template: string }> {
     if (!this.config.rendersEnabled) throw new AppError(503, 'renders_disabled', 'Rendering is temporarily disabled');
     this.rateLimit(principal);
     const snap = await this.assets.snapshot();
@@ -135,7 +160,12 @@ export class RenderService {
       images.push(validateImage(b, { ...DEFAULT_IMAGE_LIMITS, maxBytes: RENDER_IMAGE_MAX }));
     }
     if (bytes > RENDER_IMAGES_TOTAL_MAX) throw new AppError(413, 'payload_too_large', 'Render images must total ≤2 MiB');
-    for (const id of input.assetIds) images.push(validateImage((await this.assets.objectBytes(id)).bytes));
+    for (const id of input.assetIds) {
+      const { bytes, record } = await this.assets.objectBytes(id);
+      // Anonymous callers may only reference public (active, i.e. searchable) assets — not archived ones.
+      if (principal.kind === 'anonymous' && record.status !== 'active') throw new AppError(404, 'not_found', 'Unknown asset id');
+      images.push(validateImage(bytes));
+    }
     if (images.length < t.inputs.images.min || images.length > t.inputs.images.max) {
       throw new AppError(400, 'invalid_images', `images must have ${t.inputs.images.min}..${t.inputs.images.max} items`);
     }

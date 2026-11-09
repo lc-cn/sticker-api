@@ -32,6 +32,10 @@ export class FakeGitHub {
   private userTokens = new Map<string, FakeUser>();
   readonly revoked: string[] = [];
   readonly issuedInstallationTokens: string[] = [];
+  /** Actions: recorded workflow_dispatch calls, fake runs, and a switch simulating a missing permission. */
+  readonly dispatches: Array<{ workflow: string; body: { ref?: string; inputs?: Record<string, string> } }> = [];
+  actionsForbidden = false;
+  private runSeq = 0;
 
   constructor(
     readonly opts: {
@@ -237,6 +241,31 @@ export class FakeGitHub {
     }
     if (!this.authed(req)) return this.send(res, 401, { message: 'Requires authentication' });
     const sub = path.slice(pre.length);
+
+    let wf: RegExpExecArray | null;
+    if ((wf = /^\/actions\/workflows\/([^/]+)\/(dispatches|runs)$/.exec(sub))) {
+      if (this.actionsForbidden) return this.send(res, 403, { message: 'Resource not accessible by integration' });
+      const workflow = decodeURIComponent(wf[1]!);
+      if (method === 'POST' && wf[2] === 'dispatches') {
+        const b = json();
+        if (b.ref !== this.branch || typeof b.inputs !== 'object') return this.send(res, 422, { message: 'bad dispatch' });
+        this.dispatches.push({ workflow, body: b });
+        return this.send(res, 204);
+      }
+      if (method === 'GET' && wf[2] === 'runs') {
+        const runs = this.dispatches
+          .filter((d) => d.workflow === workflow)
+          .map((d, i) => ({
+            id: 1000 + i, run_number: i + 1, display_title: `collect ${d.body.inputs?.source ?? ''}`, event: 'workflow_dispatch',
+            status: i === this.dispatches.length - 1 ? 'queued' : 'completed', conclusion: i === this.dispatches.length - 1 ? null : 'skipped',
+            created_at: new Date(Date.UTC(2026, 10, 9, 8, i)).toISOString(), updated_at: new Date().toISOString(),
+            html_url: `https://github.com/${this.opts.owner}/${this.opts.repo}/actions/runs/${1000 + i}`,
+          }))
+          .reverse();
+        this.runSeq = runs.length;
+        return this.send(res, 200, { total_count: runs.length, workflow_runs: runs });
+      }
+    }
 
     let m: RegExpExecArray | null;
     if (method === 'GET' && (m = /^\/git\/ref\/heads\/(.+)$/.exec(sub))) {

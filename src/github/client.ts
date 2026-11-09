@@ -136,6 +136,30 @@ export class GitHubRepoClient {
     return Buffer.from(await res.arrayBuffer());
   }
 
+  // ---------- Actions (collect workflow). Needs the writer App permission "Actions: Read and write". ----------
+  private actionsError(res: Response, what: string): AppError {
+    if (res.status === 403 || res.status === 404) {
+      // 404 is what GitHub returns for a missing permission on some endpoints, or a missing workflow file.
+      return new AppError(503, 'actions_permission', `GitHub ${what} denied (${res.status}): the writer GitHub App needs repository permission "Actions: Read and write", and A must contain the workflow on its default branch`, { retryable: false });
+    }
+    if (res.status === 422) return new AppError(422, 'workflow_dispatch_rejected', `GitHub rejected the dispatch (422): workflow inputs or ref invalid`, { retryable: false });
+    return new AppError(502, 'upstream_error', `GitHub ${what} failed (${res.status})`, { retryable: res.status >= 500 });
+  }
+
+  async dispatchWorkflow(workflow: string, ref: string, inputs: Record<string, string>): Promise<void> {
+    if (!this.canWrite) throw new AppError(503, 'actions_unconfigured', 'Writer GitHub App not configured');
+    const res = await this.api('POST', `/actions/workflows/${encodeURIComponent(workflow)}/dispatches`, { ref, inputs });
+    if (res.status !== 204 && res.status !== 200) throw this.actionsError(res, 'workflow dispatch');
+  }
+
+  async listWorkflowRuns(workflow: string, perPage = 10): Promise<Array<Record<string, unknown>>> {
+    if (!this.canWrite) throw new AppError(503, 'actions_unconfigured', 'Writer GitHub App not configured');
+    const res = await this.api('GET', `/actions/workflows/${encodeURIComponent(workflow)}/runs?per_page=${perPage}`);
+    if (!res.ok) throw this.actionsError(res, 'list workflow runs');
+    const body = (await res.json()) as { workflow_runs?: Array<Record<string, unknown>> };
+    return Array.isArray(body.workflow_runs) ? body.workflow_runs : [];
+  }
+
   async createBlob(content: Buffer): Promise<string> {
     const res = await this.api('POST', '/git/blobs', { content: content.toString('base64'), encoding: 'base64' });
     return (await this.json<{ sha: string }>(res, 'create blob')).sha;

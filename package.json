@@ -5,7 +5,7 @@
   "type": "module",
   "description": "小智表情服务 B：单 Vercel、无状态 API；A 仓库(sticker-assets)为唯一权威",
   "engines": {
-    "node": ">=22"
+    "node": "24.x"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",

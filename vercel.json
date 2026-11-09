@@ -6,9 +6,13 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 30,
-      "memory": 1024,
-      "includeFiles": "{dist/**,node_modules/@resvg/resvg-wasm/index_bg.wasm,fonts/**}"
+      "includeFiles": "{dist/**,fonts/**}"
     }
   },
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/index.js" }]
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index.js"
+    }
+  ]
 }

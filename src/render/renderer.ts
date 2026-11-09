@@ -139,8 +139,11 @@ export class Renderer {
 
   private module(): Promise<WebAssembly.Module> {
     if (!this.wasm) {
-      const require = createRequire(import.meta.url);
-      const file = require.resolve('@resvg/resvg-wasm/index_bg.wasm');
+      // Prefer the copy emitted by `pnpm build` (dist/wasm/) so Vercel never has to bundle pnpm's symlinked node_modules.
+      const bundled = fileURLToPath(new URL('../../wasm/resvg.wasm', import.meta.url));
+      const file = fs.existsSync(bundled)
+        ? bundled
+        : createRequire(import.meta.url).resolve('@resvg/resvg-wasm/index_bg.wasm');
       this.wasm = WebAssembly.compile(fs.readFileSync(file));
     }
     return this.wasm;

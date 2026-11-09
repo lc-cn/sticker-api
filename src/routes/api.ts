@@ -67,7 +67,8 @@ export async function registerApiRoutes(
   app.get('/v1/assets/:id', async (req, reply) => {
     noStore(reply);
     const { id } = req.params as { id: string };
-    const r = await assets.get(id);
+    const q = req.query as { view?: string };
+    const r = await assets.get(id, { full: q.view === 'full' });
     if (typeof r.rev === 'number') reply.header('etag', `"${r.rev}"`);
     return r;
   });

@@ -193,7 +193,7 @@ function assetsView() {
     const id = idInput.value.trim();
     if (!id) return;
     try {
-      const asset = await api(`/v1/assets/${encodeURIComponent(id)}`);
+      const asset = await api(`/v1/assets/${encodeURIComponent(id)}?view=full`);
       tbody.replaceChildren(row(asset));
       more.classList.add('hidden');
     } catch (e) {
@@ -248,7 +248,7 @@ function modal(title, body, onSubmit, submitLabel = '保存', danger = false) {
 
 async function fresh(id) {
   try {
-    return await api(`/v1/assets/${encodeURIComponent(id)}`);
+    return await api(`/v1/assets/${encodeURIComponent(id)}?view=full`);
   } catch (e) {
     if (!handleAuthError(e)) toast(errText(e));
     return null;

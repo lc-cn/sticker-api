@@ -38,9 +38,10 @@ paths:
       summary: Detail (compact, no sources)
       parameters:
         - { name: id, in: path, required: true, schema: { type: string }, description: "12-hex short id, or sha256:<64hex>" }
+        - { name: view, in: query, schema: { enum: [full] }, description: "full = admin extras (rights/tone/text); omit for tools" }
       responses:
         "200":
-          description: "{id,url,title,tags?,cats?,w,h,mime,bytes,anim?,rev,status,uploadedAt,tone?,safety?,rights?,sha,...}"
+          description: "{id,url,title,tags?,cats?,w,h,mime,bytes,anim?,rev,status,uploadedAt,sha} (+rights/… only if view=full)"
     patch:
       summary: Edit metadata (auth)
       responses: { "200": { description: receipt } }

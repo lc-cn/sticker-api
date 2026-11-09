@@ -131,7 +131,7 @@ export class AssetService {
   }
 
   /** Compact public/tool shape. No mirror arrays, provenance, or long sha in `id`. */
-  compactAsset(r: AssetRecord, opts: { detail?: boolean } = {}) {
+  compactAsset(r: AssetRecord, opts: { detail?: boolean; full?: boolean } = {}) {
     const live = r.status !== 'tombstoned';
     const sha = r.object.sha256;
     const out: Record<string, unknown> = {
@@ -139,28 +139,31 @@ export class AssetService {
       title: r.title,
     };
     if (live) out.url = shortContentPath(sha, r.object.mime);
-    if (r.tags?.length) out.tags = opts.detail ? r.tags : r.tags.slice(0, 3);
+    if (r.tags?.length) out.tags = opts.detail || opts.full ? r.tags : r.tags.slice(0, 3);
     if (r.categories?.length) out.cats = r.categories;
     out.w = r.object.width;
     out.h = r.object.height;
     out.mime = r.object.mime;
     out.bytes = r.object.bytes;
     if (r.object.animated) out.anim = true;
-    if (opts.detail) {
+    if (opts.detail || opts.full) {
       if (r.object.frames > 1) out.frames = r.object.frames;
       out.rev = r.revision;
       out.status = r.status;
       out.uploadedAt = r.uploadedAt;
-      if (r.tone) out.tone = r.tone;
-      if (r.safety) out.safety = r.safety;
-      if (r.language) out.lang = r.language;
-      if (r.aliases?.length) out.aliases = r.aliases;
-      if (r.text) out.text = r.text;
-      if (r.rights) out.rights = r.rights;
-      if (r.archivedAt) out.archivedAt = r.archivedAt;
-      if (r.deletedAt) out.deletedAt = r.deletedAt;
       // Full content-addressed id for write/If-Match flows (admin); tools can ignore.
       out.sha = r.id;
+      if (opts.full) {
+        // Admin-only extras — not part of the tool contract (licenses live in A licenses/).
+        if (r.tone) out.tone = r.tone;
+        if (r.safety) out.safety = r.safety;
+        if (r.language) out.lang = r.language;
+        if (r.aliases?.length) out.aliases = r.aliases;
+        if (r.text) out.text = r.text;
+        if (r.rights) out.rights = r.rights;
+        if (r.archivedAt) out.archivedAt = r.archivedAt;
+        if (r.deletedAt) out.deletedAt = r.deletedAt;
+      }
     } else {
       out.uploadedAt = r.uploadedAt;
       out.rev = r.revision;
@@ -195,7 +198,7 @@ export class AssetService {
     };
   }
 
-  async get(rawId: string) {
+  async get(rawId: string, opts: { full?: boolean } = {}) {
     const { record: r } = await this.resolveAssetRef(rawId);
     if (r.status === 'tombstoned') {
       throw new AppError(410, 'gone', 'Asset was removed', {
@@ -203,7 +206,7 @@ export class AssetService {
         details: { id: r.object.sha256.slice(0, SHORT_ID_LEN), deletedAt: r.deletedAt, rev: r.revision },
       });
     }
-    return this.compactAsset(r, { detail: true });
+    return this.compactAsset(r, { detail: true, full: !!opts.full });
   }
 
   /** Accept sha256:<64hex>, bare 64-hex, or unique 8–64 hex prefix (canonical short id = 12). */

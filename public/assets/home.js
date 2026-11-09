@@ -1,5 +1,5 @@
 import {
-  $, el, api, ApiError, imgFromUrl, fmtTime, fmtBytes, copyText, saveBlob,
+  $, el, api, ApiError, imgFromUrl, imgFromSources, fmtTime, fmtBytes, copyText, saveBlob,
   downloadFromSources, copyImageBlob, extFor, errorText, safeUrl,
 } from './common.js';
 
@@ -132,7 +132,7 @@ async function loadTemplates() {
     box.replaceChildren(...templates.map((tpl) => {
       const kind = tpl.inputs.images.max > 0 ? `放 ${tpl.inputs.images.max} 张图` : `${tpl.inputs.texts.max} 段文字`;
       const btn = el('button', { type: 'button', class: 'tpl', dataset: { id: tpl.id }, 'aria-pressed': 'false', onclick: () => pick(tpl) },
-        el('div', { class: 'thumb' }, imgFromUrl(tpl.preview, tpl.title)),
+        el('div', { class: 'thumb' }, Array.isArray(tpl.preview) ? imgFromSources(tpl.preview, tpl.title) : imgFromUrl(typeof tpl.preview === 'string' ? tpl.preview : (tpl.preview?.[0]?.url || tpl.preview?.url || ''), tpl.title)),
         el('div', { class: 'meta' },
           el('div', { class: 'name' }, tpl.title),
           el('div', { class: 'sub' }, kind)));

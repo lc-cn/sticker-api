@@ -1,0 +1,20 @@
+package.json
+  h_b64ebe5d3c7815 8
+scripts/copy-vendor-data.mjs
+  h_b64ebe5d3c7815 7-11
+src/render/renderer.ts
+  h_b64ebe5d3c7815 142-146
+vercel.json
+  h_b64ebe5d3c7815 9,12-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1f79b29d1c2f2a9d80d19e79d46bec8264ee088d",
+  "prompts": {},
+  "humans": {
+    "h_b64ebe5d3c7815": {
+      "author": "Class Liu <chunlang.liu@rdc-west.com>"
+    }
+  }
+}

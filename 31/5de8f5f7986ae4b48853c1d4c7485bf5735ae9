@@ -1,0 +1,40 @@
+README.md
+  h_b64ebe5d3c7815 9-10,21
+openapi.yaml
+  h_b64ebe5d3c7815 3-7,12-16,19,24,28-31,33-38,40,42-43,45-46,48-49,52,54-56,58-60,62-64,66,68-70,72-84,86-92
+public/assets/admin.js
+  h_b64ebe5d3c7815 1,161,163,165,167-170,184,196,251,263,267,276-277,293,296-297,312-313
+public/assets/common.js
+  h_b64ebe5d3c7815 66-70,132,134-136,139,143
+public/assets/home.js
+  h_b64ebe5d3c7815 2,35,37,56-58,64,88-89,93-94,96,103,107-108,127,135
+public/tool.schema.json
+  h_b64ebe5d3c7815 1-39
+src/routes/api.ts
+  h_b64ebe5d3c7815 71,109-117
+src/routes/web.ts
+  h_b64ebe5d3c7815 79-84
+src/services/assets.ts
+  h_b64ebe5d3c7815 133-172,194,199,201-204,206-213,219,225,288,312-330,332-338,343-344,391,393,574-578,627-631,634
+src/services/renders.ts
+  h_b64ebe5d3c7815 91-105,107-124
+tests/assets.test.ts
+  h_b64ebe5d3c7815 18-19,21,25-26,31-34,39,42-43,46,48,85,227,238-239,310,364-366
+tests/homepage.test.ts
+  h_b64ebe5d3c7815 125-128,136,139-140,142-148
+tests/render.test.ts
+  h_b64ebe5d3c7815 9,14-24,30-31
+web/docs.html
+  h_b64ebe5d3c7815 24-25,28,31-36,41-42,44,47-48,51,54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "315de8f5f7986ae4b48853c1d4c7485bf5735ae9",
+  "prompts": {},
+  "humans": {
+    "h_b64ebe5d3c7815": {
+      "author": "Class Liu <chunlang.liu@rdc-west.com>"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+public/assets/style.css
+  s_a467b02185c88e::t_d6b09d52e48a81 192-265
+src/http/fetch-image.ts
+  s_a467b02185c88e::t_c52824c57f1c79 1-201
+tests/homepage.test.ts
+  s_a467b02185c88e::t_cba9a77ada9b3d 139-140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c9159dde16e762a9914a491e18d7cc9bc25d0df8",
+  "prompts": {},
+  "sessions": {
+    "s_a467b02185c88e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0319c-34d0-7a61-a360-f3203f30d70a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Class Liu <chunlang.liu@rdc-west.com>"
+    }
+  }
+}

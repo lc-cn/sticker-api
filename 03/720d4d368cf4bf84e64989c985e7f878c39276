@@ -1,0 +1,14 @@
+vercel.json
+  h_b64ebe5d3c7815 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "03720d4d368cf4bf84e64989c985e7f878c39276",
+  "prompts": {},
+  "humans": {
+    "h_b64ebe5d3c7815": {
+      "author": "Class Liu <chunlang.liu@rdc-west.com>"
+    }
+  }
+}

@@ -127,7 +127,7 @@ Git 流程：GET ref → 固定 H 读受影响 manifest/索引/预算/tombstone 
 | 资产数（active+archived） | ≤ 3000 |
 | 仓库当前树受管字节（objects+templates+manifests+indexes+events+budgets+licenses） | ≤ 500 MiB；≥ 250 MiB 告警 |
 | 单对象 | ≤ 2 MiB；长边 ≤ 2048；单帧画布 ≤ 4 MP；帧 ≤ 60；帧数×画布 ≤ 24 MP |
-| 每日成功发布 | ≤ 100 张、≤ 40 MiB（Asia/Manila 自然日） |
+| 每日成功发布 | ≤ 1000 张、≤ 200 MiB（Asia/Manila 自然日；仅 admin/machine `assets:write` 可写入，防失控环） |
 | catalog ≤ 256 KiB；任一 manifest/terms/docs 分片 ≤ 128 KiB；recent ≤ 128 KiB |
 | tags/aliases ≤ 20，单个 ≤ 24 字符；title ≤ 80；categories 1..5 |
 

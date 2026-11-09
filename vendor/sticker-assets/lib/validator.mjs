@@ -289,13 +289,14 @@ export function validateRepo(root, opts = {}) {
   }
 
   // 10. 身份字段与密钥扫描
+  // indexes/terms/* 的键是搜索词表（可含「token」等自然语言），只跑密钥正则，不扫字段名。
   for (const f of files) {
     const top = f.split('/')[0];
     if (BINARY_EXT.test(f)) continue;
     let text;
     try { text = readText(root, f); } catch { continue; }
     for (const [name, re] of SECRET_PATTERNS) if (re.test(text)) err(f, `疑似 ${name}，禁止入库`);
-    if ((MANAGED_DIRS.includes(top) || top === 'config') && f.endsWith('.json')) {
+    if ((MANAGED_DIRS.includes(top) || top === 'config') && f.endsWith('.json') && !f.startsWith('indexes/terms/')) {
       try { scanKeys(JSON.parse(text), '$', (p) => err(f, `禁止的身份/凭证字段 ${p}`)); } catch { /* 已报告 */ }
     }
   }

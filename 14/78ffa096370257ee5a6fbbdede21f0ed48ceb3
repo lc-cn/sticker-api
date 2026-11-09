@@ -1,0 +1,49 @@
+public/assets/admin.js
+  s_a467b02185c88e::t_87001f86f264dc 1-451
+public/assets/common.js
+  s_a467b02185c88e::t_1bf32c6a84c5a1 1-180
+scripts/dev-admin-preview.ts
+  s_a467b02185c88e::t_daf6bd35a43077 1-138
+src/app.ts
+  s_a467b02185c88e::t_c3fc09155db13a 18-19,62,96-97
+src/config.ts
+  s_a467b02185c88e::t_a4d5e60deac067 51-66,192-196,281-286
+src/github/client.ts
+  s_a467b02185c88e::t_2d616c1fcb5aff 139-162
+src/http/client-ip.ts
+  s_a467b02185c88e::t_fd63f85518e3a5 1-45
+src/http/rate-limit.ts
+  s_a467b02185c88e::t_9b3ed898c1d540 1-44
+src/routes/api.ts
+  s_a467b02185c88e::t_77959e49a5fdae 11-14,34,36,45,85-89,149-163,165,169-175
+src/routes/auth.ts
+  s_a467b02185c88e::t_6825560e90aca8 9-10,30,33,37,58-62,126-127,144,156-157
+src/services/collect.ts
+  s_a467b02185c88e::t_478f4d5f6d6ad0 1-89
+src/services/renders.ts
+  s_a467b02185c88e::t_5227bfff36da61 10-14,32,38-44,78,84-87,91,98-105,116,163-168
+tests/fake-github.ts
+  s_a467b02185c88e::t_0e3fab760a4398 35-38,245-269
+web/admin.html
+  s_a467b02185c88e::t_6a48ce306909c6 1-29
+web/docs.html
+  s_a467b02185c88e::t_897b08c163c8d2 1-59
+web/index.html
+  s_a467b02185c88e::t_56fb8dead237d4 1-121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1478ffa096370257ee5a6fbbdede21f0ed48ceb3",
+  "prompts": {},
+  "sessions": {
+    "s_a467b02185c88e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0319c-34d0-7a61-a360-f3203f30d70a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Class Liu <chunlang.liu@rdc-west.com>"
+    }
+  }
+}

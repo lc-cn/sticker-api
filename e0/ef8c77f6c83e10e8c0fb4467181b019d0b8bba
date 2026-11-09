@@ -1,0 +1,18 @@
+fonts/NOTICE
+  h_b64ebe5d3c7815 1-5
+fonts/OFL.txt
+  h_b64ebe5d3c7815 1-92
+fonts/README.md
+  h_b64ebe5d3c7815 4-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e0ef8c77f6c83e10e8c0fb4467181b019d0b8bba",
+  "prompts": {},
+  "humans": {
+    "h_b64ebe5d3c7815": {
+      "author": "Class Liu <chunlang.liu@rdc-west.com>"
+    }
+  }
+}

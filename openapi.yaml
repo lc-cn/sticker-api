@@ -1,0 +1,137 @@
+openapi: 3.1.0
+info:
+  title: Sticker API
+  version: 0.1.0
+  description: |
+    Independent sticker pack service for Xiaozhi.
+    Stores original PNG/JPEG/GIF/WebP bytes with content-hash dedupe and Chinese metadata search.
+    Does not store sender identity or chat transcripts.
+servers:
+  - url: http://127.0.0.1:8787
+    description: Local loopback default
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      security: []
+      summary: Liveness
+      responses:
+        '200':
+          description: Process is up
+  /ready:
+    get:
+      security: []
+      summary: Readiness (DB + storage writable)
+      responses:
+        '200':
+          description: Ready
+        '503':
+          description: Not ready
+  /v1/stickers:
+    get:
+      summary: Search stickers
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+          description: Match title, textContent, emotion, or tags (substring)
+        - in: query
+          name: emotion
+          schema: { type: string }
+        - in: query
+          name: tag
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Page of stickers
+    post:
+      summary: Upload sticker (multipart)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                title: { type: string }
+                textContent: { type: string }
+                emotion: { type: string }
+                tags:
+                  type: string
+                  description: Comma-separated or JSON array string
+                sourceKind: { type: string }
+                sourceNote: { type: string }
+      responses:
+        '201':
+          description: Created
+        '200':
+          description: Deduplicated existing sticker
+  /v1/stickers/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string }
+    get:
+      summary: Metadata
+      responses:
+        '200': { description: Sticker metadata }
+        '404': { description: Not found }
+    patch:
+      summary: Update metadata
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string, nullable: true }
+                textContent: { type: string, nullable: true }
+                emotion: { type: string, nullable: true }
+                tags:
+                  type: array
+                  items: { type: string }
+                sourceKind: { type: string, nullable: true }
+                sourceNote: { type: string, nullable: true }
+      responses:
+        '200': { description: Updated }
+    delete:
+      summary: Delete metadata and original file
+      responses:
+        '204': { description: Deleted }
+  /v1/stickers/{id}/file:
+    get:
+      summary: Download original bytes
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+        - in: header
+          name: If-None-Match
+          schema: { type: string }
+      responses:
+        '200':
+          description: Original image bytes
+          content:
+            image/png: {}
+            image/jpeg: {}
+            image/gif: {}
+            image/webp: {}
+        '304':
+          description: Not modified
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer

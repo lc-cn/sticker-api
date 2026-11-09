@@ -1,0 +1,15 @@
+# Optional local compose. Binds loopback only.
+services:
+  sticker-api:
+    build: .
+    ports:
+      - "127.0.0.1:8787:8787"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8787
+      STICKER_API_TOKEN: replace-with-a-long-random-secret
+      DATA_DIR: /data
+      STICKERS_DIR: /data/stickers
+      DB_PATH: /data/stickers.db
+    volumes:
+      - ./data:/data

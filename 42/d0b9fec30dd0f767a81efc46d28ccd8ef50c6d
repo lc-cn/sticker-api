@@ -1,0 +1,30 @@
+.gitignore
+  h_b64ebe5d3c7815 11-12
+vendor/sticker-assets/CONTRACT.md
+  h_b64ebe5d3c7815 130
+vendor/sticker-assets/VERSION.json
+  h_b64ebe5d3c7815 3,5,19,21,33,35
+vendor/sticker-assets/config/limits.json
+  h_b64ebe5d3c7815 11-12
+vendor/sticker-assets/fixtures/sample-repo/config/limits.json
+  h_b64ebe5d3c7815 11-12
+vendor/sticker-assets/fixtures/sample-repo/indexes/catalog.json
+  h_b64ebe5d3c7815 1
+vendor/sticker-assets/lib/validator.mjs
+  h_b64ebe5d3c7815 292,299
+vendor/sticker-assets/schemas.mjs
+  h_b64ebe5d3c7815 2
+vendor/sticker-assets/schemas/v1/budget.schema.json
+  h_b64ebe5d3c7815 7-13,15-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "42d0b9fec30dd0f767a81efc46d28ccd8ef50c6d",
+  "prompts": {},
+  "humans": {
+    "h_b64ebe5d3c7815": {
+      "author": "Class Liu <chunlang.liu@rdc-west.com>"
+    }
+  }
+}

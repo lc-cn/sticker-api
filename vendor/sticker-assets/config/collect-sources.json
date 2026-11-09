@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "workflow": "collect.yml",
+  "note": "采集来源登记表。B 的管理后台读取本文件列出来源，并以 workflow_dispatch(source=<id>) 触发 collect.yml。approved=false 的来源只跑占位脚本（不联网、不写仓库）。",
+  "sources": [
+    {
+      "id": "bilibili",
+      "label": "哔哩哔哩（B站）",
+      "approved": false,
+      "description": "B 站动态/专栏中的新梗表情。需 Fin 批准具体 UP 主或话题清单与再分发许可后才实现适配器。"
+    },
+    {
+      "id": "weibo",
+      "label": "微博",
+      "approved": false,
+      "description": "微博热门表情话题。尚未批准，占位。"
+    },
+    {
+      "id": "chinesebqb",
+      "label": "ChineseBQB（经典备用源）",
+      "approved": false,
+      "description": "zhaoolee/ChineseBQB 经典表情包，仅作备用源。尚未批准，占位。"
+    }
+  ]
+}

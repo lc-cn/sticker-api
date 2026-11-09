@@ -1,8 +1,8 @@
 {
   "source": "sticker-assets",
-  "commit": "3add1aec62dcf64dbfd0444cd1d538eaa8140b94",
+  "commit": "c117265160c9142fd83275bf45c5f63ccaab9af2",
   "dirty": false,
-  "vendoredAt": "2026-11-09T03:50:06.273Z",
+  "vendoredAt": "2026-11-09T09:10:40.375Z",
   "files": {
     "lib/canonical.mjs": "e0eaaa1e58cf20d2f3a48cc9527c12dd21c9977f0a99ad60076a97f72873268d",
     "lib/commit-plan.mjs": "4f05d037d295f12ccedf6f74bd63da460a60267e00942698e390944166bef1c0",
@@ -28,11 +28,12 @@
     "schemas/v1/license.schema.json": "6956bf4d022d49ba7ba06f3917fbf34b466e3421b0b2b609e88d4c6f2b2a7fd5",
     "schemas/v1/manifest-shard.schema.json": "79592d445296d45ff9b7c58d8fdf101e4bbe236a4857de32b9fc888499df0f99",
     "schemas/v1/mirrors.schema.json": "ffa798c7e5b9d62dd02cdf5a510ceb2b36cfe7acdb4ab258bb2ffebc4f4d5f0e",
-    "schemas/v1/template.schema.json": "ed0899fc0131146dd6cb697d8a322f64165d2a68d73dcd54c54df9c78504937b",
+    "schemas/v1/template.schema.json": "fc4cc987df24244bfc388baa7f9a165dac1f41a719c4ca6d2383232f54a9f0a5",
     "sticker-assets.json": "fad0d27f995ab9df0c03c8ccc47416a74a9aa2e07cae88ebe777127ee357fa98",
     "CONTRACT.md": "a7b93a7ad7d4c98b28e6e5e8bee6ca71d2326f52b60855fe93502697c2aa6bae",
+    "config/collect-sources.json": "08ba1eb115c5c51f9cf0b0b72d85e956a03bc77a5ccfba136ce410177eef5865",
     "config/limits.json": "a5514ea33d05f459c9c2a235ab818f9f5a34271feb9611d769c3be3871f598fa",
-    "config/mirrors.json": "40ee7043d54bb468fbe24c91e9e8e16a14336df7a16aeb7dc6c30f71f8e2f26e",
+    "config/mirrors.json": "c16022abdb8bbaf165e7a6ef19cda3ca0a3a493ff34d0f90f7616a719f953da3",
     "config/synonyms.json": "214e0b327fa1c68a945a550ca611750dc78908c4f5ee2fbec646df06614d7da5",
     "config/taxonomy.json": "2d53399a9a082a31d4dc5ca00b837a05f787fb469ae4549673ad9ec3950c7e91"
   }

@@ -4,52 +4,152 @@
   "title": "轻模板 templates/<id>/<version>/template.json（声明式，B 的 light-v1 渲染器执行，不含代码）",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "id", "version", "title", "status", "renderer", "tags", "inputs", "params", "output", "canvas", "layers", "files", "fonts", "licenseIds", "notice"],
+  "required": [
+    "schemaVersion",
+    "id",
+    "version",
+    "title",
+    "status",
+    "renderer",
+    "tags",
+    "inputs",
+    "params",
+    "output",
+    "canvas",
+    "layers",
+    "files",
+    "fonts",
+    "licenseIds",
+    "notice"
+  ],
   "$defs": {
     "box": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["x", "y", "w", "h"],
+      "required": [
+        "x",
+        "y",
+        "w",
+        "h"
+      ],
       "properties": {
-        "x": { "type": "integer", "minimum": 0, "maximum": 2048 },
-        "y": { "type": "integer", "minimum": 0, "maximum": 2048 },
-        "w": { "type": "integer", "minimum": 1, "maximum": 2048 },
-        "h": { "type": "integer", "minimum": 1, "maximum": 2048 }
+        "x": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2048
+        },
+        "y": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2048
+        },
+        "w": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2048
+        },
+        "h": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2048
+        }
       }
     },
-    "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$" },
-    "relPath": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,47}\\.(png|jpg|gif)$" }
+    "color": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$"
+    },
+    "relPath": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,47}\\.(png|jpg|gif)$"
+    }
   },
   "properties": {
-    "schemaVersion": { "const": 1 },
-    "id": { "$ref": "urn:sticker-assets:v1:common#/$defs/templateId" },
-    "version": { "type": "integer", "minimum": 1 },
-    "title": { "type": "string", "minLength": 1, "maxLength": 80 },
-    "status": { "type": "string", "enum": ["active", "disabled"] },
-    "renderer": { "const": "light-v1" },
-    "tags": { "type": "array", "maxItems": 20, "uniqueItems": true, "items": { "$ref": "urn:sticker-assets:v1:common#/$defs/tag" } },
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "urn:sticker-assets:v1:common#/$defs/templateId"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "disabled"
+      ]
+    },
+    "renderer": {
+      "const": "light-v1"
+    },
+    "tags": {
+      "type": "array",
+      "maxItems": 20,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "urn:sticker-assets:v1:common#/$defs/tag"
+      }
+    },
     "inputs": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["texts", "images"],
+      "required": [
+        "texts",
+        "images"
+      ],
       "properties": {
         "texts": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["min", "max", "maxLength"],
+          "required": [
+            "min",
+            "max",
+            "maxLength"
+          ],
           "properties": {
-            "min": { "type": "integer", "minimum": 0, "maximum": 4 },
-            "max": { "type": "integer", "minimum": 0, "maximum": 4 },
-            "maxLength": { "type": "integer", "minimum": 1, "maximum": 200 }
+            "min": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4
+            },
+            "max": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4
+            },
+            "maxLength": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
           }
         },
         "images": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["min", "max"],
+          "required": [
+            "min",
+            "max"
+          ],
           "properties": {
-            "min": { "type": "integer", "minimum": 0, "maximum": 2 },
-            "max": { "type": "integer", "minimum": 0, "maximum": 2 }
+            "min": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            },
+            "max": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            }
           }
         }
       }
@@ -60,36 +160,109 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "type", "default"],
+        "required": [
+          "name",
+          "type",
+          "default"
+        ],
         "properties": {
-          "name": { "type": "string", "pattern": "^[a-z][a-zA-Z0-9]{0,23}$" },
-          "type": { "type": "string", "enum": ["string", "integer", "boolean", "enum"] },
-          "default": { "type": ["string", "integer", "boolean"] },
-          "enum": { "type": "array", "maxItems": 16, "items": { "type": "string", "maxLength": 32 } },
-          "minimum": { "type": "integer" },
-          "maximum": { "type": "integer" },
-          "maxLength": { "type": "integer", "minimum": 1, "maximum": 200 }
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-zA-Z0-9]{0,23}$"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "string",
+              "integer",
+              "boolean",
+              "enum"
+            ]
+          },
+          "default": {
+            "type": [
+              "string",
+              "integer",
+              "boolean"
+            ]
+          },
+          "enum": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "maxLength": 32
+            }
+          },
+          "minimum": {
+            "type": "integer"
+          },
+          "maximum": {
+            "type": "integer"
+          },
+          "maxLength": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
         }
       }
     },
     "output": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["mime", "animated", "maxBytes"],
+      "required": [
+        "mime",
+        "animated",
+        "maxBytes"
+      ],
       "properties": {
-        "mime": { "type": "string", "enum": ["image/png", "image/gif"] },
-        "animated": { "type": "boolean" },
-        "maxBytes": { "type": "integer", "minimum": 1, "maximum": 2097152 }
+        "mime": {
+          "type": "string",
+          "enum": [
+            "image/png",
+            "image/gif"
+          ]
+        },
+        "animated": {
+          "type": "boolean"
+        },
+        "maxBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2097152
+        }
       }
     },
     "canvas": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["width", "height", "background"],
+      "required": [
+        "width",
+        "height",
+        "background"
+      ],
       "properties": {
-        "width": { "type": "integer", "minimum": 1, "maximum": 2048 },
-        "height": { "type": "integer", "minimum": 1, "maximum": 2048 },
-        "background": { "anyOf": [ { "$ref": "#/$defs/color" }, { "type": "null" } ] }
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2048
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2048
+        },
+        "background": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/color"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
       }
     },
     "layers": {
@@ -101,46 +274,142 @@
           {
             "type": "object",
             "additionalProperties": false,
-            "required": ["type", "file", "box"],
-            "properties": { "type": { "const": "image" }, "file": { "$ref": "#/$defs/relPath" }, "box": { "$ref": "#/$defs/box" } }
-          },
-          {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["type", "slot", "box", "fit"],
+            "required": [
+              "type",
+              "file",
+              "box"
+            ],
             "properties": {
-              "type": { "const": "slot-image" },
-              "slot": { "type": "integer", "minimum": 0, "maximum": 1 },
-              "box": { "$ref": "#/$defs/box" },
-              "fit": { "type": "string", "enum": ["contain", "cover"] }
+              "type": {
+                "const": "image"
+              },
+              "file": {
+                "$ref": "#/$defs/relPath"
+              },
+              "box": {
+                "$ref": "#/$defs/box"
+              }
             }
           },
           {
             "type": "object",
             "additionalProperties": false,
-            "required": ["type", "slot", "box", "font", "fontSize", "minFontSize", "color", "stroke", "align", "valign", "wrap"],
+            "required": [
+              "type",
+              "slot",
+              "box",
+              "fit"
+            ],
             "properties": {
-              "type": { "const": "text" },
-              "slot": { "type": "integer", "minimum": 0, "maximum": 3 },
-              "box": { "$ref": "#/$defs/box" },
-              "font": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,47}$" },
-              "fontSize": { "type": "integer", "minimum": 6, "maximum": 256 },
-              "minFontSize": { "type": "integer", "minimum": 6, "maximum": 256 },
-              "color": { "$ref": "#/$defs/color" },
+              "type": {
+                "const": "slot-image"
+              },
+              "slot": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "box": {
+                "$ref": "#/$defs/box"
+              },
+              "fit": {
+                "type": "string",
+                "enum": [
+                  "contain",
+                  "cover"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "slot",
+              "box",
+              "font",
+              "fontSize",
+              "minFontSize",
+              "color",
+              "stroke",
+              "align",
+              "valign",
+              "wrap"
+            ],
+            "properties": {
+              "type": {
+                "const": "text"
+              },
+              "slot": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 3
+              },
+              "box": {
+                "$ref": "#/$defs/box"
+              },
+              "font": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]{0,47}$"
+              },
+              "fontSize": {
+                "type": "integer",
+                "minimum": 6,
+                "maximum": 256
+              },
+              "minFontSize": {
+                "type": "integer",
+                "minimum": 6,
+                "maximum": 256
+              },
+              "color": {
+                "$ref": "#/$defs/color"
+              },
               "stroke": {
                 "anyOf": [
-                  { "type": "null" },
+                  {
+                    "type": "null"
+                  },
                   {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["color", "width"],
-                    "properties": { "color": { "$ref": "#/$defs/color" }, "width": { "type": "integer", "minimum": 1, "maximum": 16 } }
+                    "required": [
+                      "color",
+                      "width"
+                    ],
+                    "properties": {
+                      "color": {
+                        "$ref": "#/$defs/color"
+                      },
+                      "width": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 16
+                      }
+                    }
                   }
                 ]
               },
-              "align": { "type": "string", "enum": ["left", "center", "right"] },
-              "valign": { "type": "string", "enum": ["top", "middle", "bottom"] },
-              "wrap": { "type": "boolean" }
+              "align": {
+                "type": "string",
+                "enum": [
+                  "left",
+                  "center",
+                  "right"
+                ]
+              },
+              "valign": {
+                "type": "string",
+                "enum": [
+                  "top",
+                  "middle",
+                  "bottom"
+                ]
+              },
+              "wrap": {
+                "type": "boolean"
+              }
             }
           }
         ]
@@ -152,13 +421,35 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["path", "sha256", "bytes", "mime", "role"],
+        "required": [
+          "path",
+          "sha256",
+          "bytes",
+          "mime",
+          "role"
+        ],
         "properties": {
-          "path": { "$ref": "#/$defs/relPath" },
-          "sha256": { "$ref": "urn:sticker-assets:v1:common#/$defs/sha256" },
-          "bytes": { "type": "integer", "minimum": 1, "maximum": 2097152 },
-          "mime": { "$ref": "urn:sticker-assets:v1:common#/$defs/mime" },
-          "role": { "type": "string", "enum": ["base", "overlay"] }
+          "path": {
+            "$ref": "#/$defs/relPath"
+          },
+          "sha256": {
+            "$ref": "urn:sticker-assets:v1:common#/$defs/sha256"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2097152
+          },
+          "mime": {
+            "$ref": "urn:sticker-assets:v1:common#/$defs/mime"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "base",
+              "overlay"
+            ]
+          }
         }
       }
     },
@@ -168,15 +459,80 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "licenseId", "providedBy"],
+        "required": [
+          "id",
+          "licenseId",
+          "providedBy"
+        ],
         "properties": {
-          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,47}$" },
-          "licenseId": { "$ref": "urn:sticker-assets:v1:common#/$defs/licenseId" },
-          "providedBy": { "type": "string", "enum": ["renderer"] }
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,47}$"
+          },
+          "licenseId": {
+            "$ref": "urn:sticker-assets:v1:common#/$defs/licenseId"
+          },
+          "providedBy": {
+            "type": "string",
+            "enum": [
+              "renderer"
+            ]
+          }
         }
       }
     },
-    "licenseIds": { "type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true, "items": { "$ref": "urn:sticker-assets:v1:common#/$defs/licenseId" } },
-    "notice": { "type": "string", "maxLength": 2000 }
+    "licenseIds": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "urn:sticker-assets:v1:common#/$defs/licenseId"
+      }
+    },
+    "notice": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "description": "面向用户的短说明（中文）；长篇权利声明请放 license + source，勿塞进 notice。"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "project",
+        "memeId",
+        "url",
+        "commit"
+      ],
+      "properties": {
+        "kind": {
+          "const": "meme-generator"
+        },
+        "project": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "memeId": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]{1,64}$"
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 400,
+          "pattern": "^https://github\\.com/"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      },
+      "description": "机读来源（不面向展示）。MIT 权利说明见 licenses/meme-generator-mit.json。"
+    }
   }
 }

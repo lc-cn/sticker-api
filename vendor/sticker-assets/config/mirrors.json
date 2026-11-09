@@ -1,29 +1,45 @@
 {
   "schemaVersion": 1,
-  "owner": null,
-  "repo": null,
+  "owner": "lc-cn",
+  "repo": "sticker-assets",
   "origin": {
     "id": "github-raw",
     "template": "https://raw.githubusercontent.com/{owner}/{repo}/{commit}/{path}"
   },
   "mirrors": [
     {
+      "id": "jsdelivr-fastly",
+      "template": "https://fastly.jsdelivr.net/gh/{owner}/{repo}@{commit}/{path}",
+      "enabled": true,
+      "verifiedAt": "2026-11-09T07:36:00Z",
+      "note": "主力；2026-11-09 菲律宾与中国大陆实测可用，内容一致；按commit固定，长缓存；免费无SLA"
+    },
+    {
+      "id": "jsdelivr-cdn",
+      "template": "https://cdn.jsdelivr.net/gh/{owner}/{repo}@{commit}/{path}",
+      "enabled": true,
+      "verifiedAt": "2026-11-09T07:36:00Z",
+      "note": "主力备用；2026-11-09 菲律宾与中国大陆实测可用；免费无SLA"
+    },
+    {
       "id": "gh-proxy",
       "template": "https://gh-proxy.com/https://raw.githubusercontent.com/{owner}/{repo}/{commit}/{path}",
-      "enabled": false,
-      "verifiedAt": null,
-      "note": "社区免费代理，无SLA；图片bytes/header/缓存/速率/大陆可达性未验收，验收通过前不得启用"
+      "enabled": true,
+      "verifiedAt": "2026-11-09T07:36:00Z",
+      "note": "备选；2026-11-09 实测可用，Cloudflare，缓存60s，CORS *；社区代理无SLA"
     },
     {
       "id": "ghfast",
       "template": "https://ghfast.top/https://raw.githubusercontent.com/{owner}/{repo}/{commit}/{path}",
-      "enabled": false,
-      "verifiedAt": null,
-      "note": "社区免费代理，存在被封锁/换域风险；未验收，不得启用"
+      "enabled": true,
+      "verifiedAt": "2026-11-09T07:36:00Z",
+      "note": "备选；2026-11-09 实测可用但较慢(~1.5s)，缓存300s；有被封锁/换域风险"
     }
   ],
   "allowedHosts": [
     "raw.githubusercontent.com",
+    "fastly.jsdelivr.net",
+    "cdn.jsdelivr.net",
     "gh-proxy.com",
     "ghfast.top"
   ]

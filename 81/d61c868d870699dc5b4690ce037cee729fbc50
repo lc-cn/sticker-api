@@ -1,0 +1,14 @@
+public/assets/home.js
+  h_b64ebe5d3c7815 2,135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "81d61c868d870699dc5b4690ce037cee729fbc50",
+  "prompts": {},
+  "humans": {
+    "h_b64ebe5d3c7815": {
+      "author": "Class Liu <chunlang.liu@rdc-west.com>"
+    }
+  }
+}

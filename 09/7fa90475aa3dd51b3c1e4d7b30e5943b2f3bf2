@@ -1,0 +1,14 @@
+.github/workflows/ci.yml
+  h_b64ebe5d3c7815 1-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "097fa90475aa3dd51b3c1e4d7b30e5943b2f3bf2",
+  "prompts": {},
+  "humans": {
+    "h_b64ebe5d3c7815": {
+      "author": "Class Liu <chunlang.liu@rdc-west.com>"
+    }
+  }
+}

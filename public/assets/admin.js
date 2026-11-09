@@ -1,4 +1,4 @@
-import { $, el, api, ApiError, imgFromSources, fmtTime, toast, idemKey, safeUrl, copyText } from './common.js';
+import { $, el, api, ApiError, imgFromUrl, fmtTime, toast, idemKey, safeUrl, copyText } from './common.js';
 
 const app = $('#app');
 let session = null; // { admin, csrfToken, repo }
@@ -158,16 +158,16 @@ function assetsView() {
   let cursor = null;
 
   const row = (a) => el('tr', {},
-    el('td', {}, el('div', {}, imgFromSources(a.sources, a.title, { cls: 'mini' }))),
+    el('td', {}, el('div', {}, imgFromUrl(a.url, a.title, { cls: 'mini' }))),
     el('td', {}, el('div', {}, a.title || '未命名'), el('div', { class: 'muted small' }, (a.tags || []).join('、'))),
-    el('td', { class: 'hide-sm' }, (a.categories || []).map((c) => categories.find((x) => x.slug === c)?.label || c).join('、')),
+    el('td', { class: 'hide-sm' }, (a.cats || a.categories || []).map((c) => categories.find((x) => x.slug === c)?.label || c).join('、')),
     el('td', { class: 'hide-sm small' }, fmtTime(a.uploadedAt)),
-    el('td', {}, el('span', { class: `status ${a.status || 'active'}` }, STATUS_LABEL[a.status || 'active'] || a.status), el('div', { class: 'muted small' }, `r${a.revision ?? '?'}`)),
+    el('td', {}, el('span', { class: `status ${a.status || 'active'}` }, STATUS_LABEL[a.status || 'active'] || a.status), el('div', { class: 'muted small' }, `r${a.rev ?? a.revision ?? '?'}`)),
     el('td', {}, el('div', { class: 'ops' },
-      a.contentUrl ? el('button', { class: 'btn sm', type: 'button', title: a.contentUrl, onclick: () => copyText(`${location.origin}${a.contentUrl}`) }, '复制短链') : null,
-      el('button', { class: 'btn sm', type: 'button', onclick: () => editDialog(a.id, reload) }, '编辑'),
-      el('button', { class: 'btn sm', type: 'button', onclick: () => reviewDialog(a.id, reload) }, '审核'),
-      el('button', { class: 'btn sm danger', type: 'button', onclick: () => deleteDialog(a.id, reload) }, '删除'))));
+      a.url ? el('button', { class: 'btn sm', type: 'button', title: a.url, onclick: () => copyText(`${location.origin}${a.url}`) }, '复制短链') : null,
+      el('button', { class: 'btn sm', type: 'button', onclick: () => editDialog(a.sha || a.id, reload) }, '编辑'),
+      el('button', { class: 'btn sm', type: 'button', onclick: () => reviewDialog(a.sha || a.id, reload) }, '审核'),
+      el('button', { class: 'btn sm danger', type: 'button', onclick: () => deleteDialog(a.sha || a.id, reload) }, '删除'))));
 
   async function load(reset) {
     msgBox.classList.add('hidden');
@@ -181,7 +181,7 @@ function assetsView() {
       if (reset) tbody.replaceChildren();
       tbody.append(...r.items.map((a) => row({ ...a, status: 'active' })));
       if (!tbody.children.length) tbody.append(el('tr', {}, el('td', { colspan: 6, class: 'muted' }, '没有找到表情。')));
-      cursor = r.nextCursor;
+      cursor = r.next || null;
       more.classList.toggle('hidden', !cursor);
     } catch (e) {
       if (handleAuthError(e)) return;
@@ -193,7 +193,7 @@ function assetsView() {
     const id = idInput.value.trim();
     if (!id) return;
     try {
-      const { asset } = await api(`/v1/assets/${encodeURIComponent(id)}`);
+      const asset = await api(`/v1/assets/${encodeURIComponent(id)}`);
       tbody.replaceChildren(row(asset));
       more.classList.add('hidden');
     } catch (e) {
@@ -248,7 +248,7 @@ function modal(title, body, onSubmit, submitLabel = '保存', danger = false) {
 
 async function fresh(id) {
   try {
-    return (await api(`/v1/assets/${encodeURIComponent(id)}`)).asset;
+    return await api(`/v1/assets/${encodeURIComponent(id)}`);
   } catch (e) {
     if (!handleAuthError(e)) toast(errText(e));
     return null;
@@ -260,11 +260,11 @@ async function editDialog(id, done) {
   if (!a) return;
   const body = el('div', {},
     el('div', { class: 'field' }, el('label', {}, '标题'), el('input', { name: 'title', value: a.title, maxlength: 80, required: true })),
-    el('div', { class: 'field' }, el('label', {}, '分类（1–5 个）'), catChecks('cat', a.categories)),
+    el('div', { class: 'field' }, el('label', {}, '分类（1–5 个）'), catChecks('cat', a.cats || a.categories || [])),
     el('div', { class: 'field' }, el('label', {}, '标签（逗号或空格分隔）'), el('input', { name: 'tags', value: (a.tags || []).join('，') })),
     el('div', { class: 'field' }, el('label', {}, '语气'), el('select', { name: 'tone' }, ...options(TONES, a.tone))),
     el('div', { class: 'field' }, el('label', {}, '内容分级'), el('select', { name: 'rating' }, ...options(RATINGS, a.safety?.rating))),
-    el('p', { class: 'muted small' }, `当前版本 r${a.revision}，保存时会校验版本（If-Match）。`));
+    el('p', { class: 'muted small' }, `当前版本 r${a.rev ?? a.revision}，保存时会校验版本（If-Match）。`));
   modal('编辑表情', body, async (f) => {
     const patch = {
       title: f.title.value.trim(),
@@ -273,7 +273,8 @@ async function editDialog(id, done) {
       tone: f.tone.value,
       safety: { rating: f.rating.value, offensive: !!a.safety?.offensive },
     };
-    const r = await mutate('PATCH', `/v1/assets/${encodeURIComponent(a.id)}`, { json: patch, ifMatch: a.revision });
+    const assetId = a.sha || a.id;
+    const r = await mutate('PATCH', `/v1/assets/${encodeURIComponent(assetId)}`, { json: patch, ifMatch: a.rev ?? a.revision });
     addReceipt('编辑', r);
     toast('已保存');
     done();
@@ -289,10 +290,11 @@ async function reviewDialog(id, done) {
     el('div', { class: 'field' }, el('label', {}, '版权依据'), el('select', { name: 'basis' }, ...options(BASES, a.rights?.basis))),
     el('div', { class: 'field' }, el('label', {}, '许可 ID（A 仓库 licenses/ 下的文件名）'), el('input', { name: 'licenseId', value: a.rights?.licenseId || 'self-created-project', list: 'license-ids' })),
     licenseList(),
-    el('p', { class: 'muted small' }, `当前状态：${STATUS_LABEL[a.status] || a.status}，版本 r${a.revision}。`));
+    el('p', { class: 'muted small' }, `当前状态：${STATUS_LABEL[a.status] || a.status}，版本 r${a.rev ?? a.revision}。`));
   modal('审核表情', body, async (f) => {
     const json = f.action.value === 'archive' ? { status: 'archived' } : { rights: { basis: f.basis.value, licenseId: f.licenseId.value.trim() } };
-    const r = await mutate('POST', `/v1/assets/${encodeURIComponent(a.id)}/review`, { json, ifMatch: a.revision });
+    const assetId = a.sha || a.id;
+    const r = await mutate('POST', `/v1/assets/${encodeURIComponent(assetId)}/review`, { json, ifMatch: a.rev ?? a.revision });
     addReceipt(f.action.value === 'archive' ? '归档' : '审核', r);
     toast('已提交');
     done();
@@ -307,7 +309,8 @@ async function deleteDialog(id, done) {
     el('div', { class: 'field' }, el('label', {}, '删除原因'), el('select', { name: 'reason' }, ...options(REASONS, 'other'))),
     el('p', { class: 'muted small' }, '注意：jsDelivr 等镜像上按提交固定的旧链接可能还会缓存一段时间。'));
   modal('删除表情', body, async (f) => {
-    const r = await mutate('DELETE', `/v1/assets/${encodeURIComponent(a.id)}?reason=${encodeURIComponent(f.reason.value)}`, { ifMatch: a.revision });
+    const assetId = a.sha || a.id;
+    const r = await mutate('DELETE', `/v1/assets/${encodeURIComponent(assetId)}?reason=${encodeURIComponent(f.reason.value)}`, { ifMatch: a.rev ?? a.revision });
     addReceipt('删除', r);
     toast('已删除');
     done();

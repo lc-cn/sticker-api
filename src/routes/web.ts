@@ -76,6 +76,12 @@ export async function registerWebRoutes(app: FastifyInstance, deps: { config: Ap
     return reply.header('content-type', 'text/yaml; charset=utf-8').header('cache-control', 'public, max-age=300').header('access-control-allow-origin', '*').send(b);
   });
 
+  app.get('/tool.schema.json', async (_req, reply) => {
+    const b = read('public/tool.schema.json');
+    if (!b) return reply.code(404).send({ error: { code: 'not_found', message: 'tool.schema.json missing', retryable: false } });
+    return reply.header('content-type', 'application/json; charset=utf-8').header('cache-control', 'public, max-age=300').header('access-control-allow-origin', '*').send(b);
+  });
+
   app.get('/assets/:file', async (req, reply) => {
     const { file } = req.params as { file: string };
     const b = ASSET_RE.test(file) ? read(`public/assets/${file}`) : null;

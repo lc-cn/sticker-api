@@ -6,23 +6,29 @@ import { layoutText } from '../src/render/renderer.js';
 
 const PNG_SIG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
-test('templates list is public and reports renderability', async () => {
+test('templates list is public and only lists renderable templates', async () => {
   const ctx = await createCtx();
   try {
     const r = await ctx.app.inject({ method: 'GET', url: '/v1/templates' });
     assert.equal(r.statusCode, 200);
-    const t = r.json().templates.find((x: any) => x.id === 'caption-bar');
-    assert.ok(t);
-    assert.equal(t.version, 1);
-    assert.equal(t.renderable, Boolean(SYSTEM_CJK_FONT));
+    const items = r.json().items;
+    assert.ok(Array.isArray(items));
+    const t = items.find((x: any) => x.id === 'caption-bar');
+    if (SYSTEM_CJK_FONT) {
+      assert.ok(t, 'caption-bar should be listed when fonts are available');
+      assert.match(t.preview, /^\/v1\/templates\/caption-bar\/preview$/);
+      assert.equal(t.sources, undefined);
+      assert.equal(t.licenseIds, undefined);
+    } else {
+      assert.equal(t, undefined, 'unrenderable templates omitted from compact list');
+    }
   } finally {
     await ctx.close();
   }
   const nofont = await createCtx({ RENDER_FONTS: '' });
   try {
-    const t = (await nofont.app.inject({ method: 'GET', url: '/v1/templates' })).json().templates[0];
-    assert.equal(t.renderable, false);
-    assert.match(t.unavailableReason, /font/);
+    const items = (await nofont.app.inject({ method: 'GET', url: '/v1/templates' })).json().items;
+    assert.ok(!items.some((x: any) => x.id === 'caption-bar'));
     const r = await nofont.app.inject({ method: 'POST', url: '/v1/renders', headers: bearer(TOKENS.xiaozhi), payload: { template: 'caption-bar', texts: ['你好'] } });
     assert.equal(r.statusCode, 503);
     assert.equal(r.json().error.code, 'template_unavailable');

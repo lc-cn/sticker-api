@@ -15,34 +15,37 @@ test('public reads need no login; fixture search/detail/content work', async () 
     const list = await ctx.app.inject({ method: 'GET', url: '/v1/assets' });
     assert.equal(list.statusCode, 200, list.body);
     const body = list.json();
-    assert.equal(body.commit, ctx.gh.head());
-    assert.equal(body.items.length, 4, 'fixture has 4 active');
+    assert.equal(body.n, 4, 'fixture has 4 active');
+    assert.equal(body.items.length, 4);
     assert.equal(list.headers['cache-control'], 'no-store');
+    assert.equal(body.items[0].sources, undefined, 'list must not carry mirror arrays');
     // uploaded sort = recent first
     const times = body.items.map((i: any) => Date.parse(i.uploadedAt));
     assert.deepEqual([...times].sort((a, b) => b - a), times);
-    assert.match(body.items[0].uploadedAtLocal, /\+08:00$/);
+    assert.match(body.items[0].id, /^[0-9a-f]{12}$/);
+    assert.match(body.items[0].url, /^\/v1\/asset\/[0-9a-f]{12}\.(png|jpg|gif)$/);
 
     const id = body.items[0].id;
     const det = await ctx.app.inject({ method: 'GET', url: `/v1/assets/${id}` });
     assert.equal(det.statusCode, 200);
-    assert.equal(det.headers.etag, `"${det.json().asset.revision}"`);
+    const asset = det.json();
+    assert.equal(det.headers.etag, `"${asset.rev}"`);
+    assert.equal(asset.sources, undefined, 'detail must not carry mirror arrays');
+    assert.match(asset.sha, /^sha256:[0-9a-f]{64}$/);
 
     const c = await ctx.app.inject({ method: 'GET', url: `/v1/assets/${id}/content` });
     assert.equal(c.statusCode, 302);
     assert.equal(c.headers['cache-control'], 'no-store');
-    assert.equal(c.headers.location, `https://raw.githubusercontent.com/example-owner/sticker-assets/${ctx.gh.head()}/${det.json().asset.sources[0].url.split(`${ctx.gh.head()}/`)[1]}`);
+    assert.match(String(c.headers.location), new RegExp(`raw\.githubusercontent\.com/example-owner/sticker-assets/${ctx.gh.head()}/`));
 
     // Short public URL (canonical 12-hex docKey + real ext)
-    const asset = det.json().asset;
-    assert.match(asset.contentUrl, /^\/v1\/asset\/[0-9a-f]{12}\.(png|jpg|gif)$/);
-    assert.match(body.items[0].contentUrl, /^\/v1\/asset\/[0-9a-f]{12}\./);
-    const short = await ctx.app.inject({ method: 'GET', url: asset.contentUrl });
+    assert.match(asset.url, /^\/v1\/asset\/[0-9a-f]{12}\.(png|jpg|gif)$/);
+    const short = await ctx.app.inject({ method: 'GET', url: asset.url });
     assert.equal(short.statusCode, 302);
     assert.equal(short.headers.location, c.headers.location);
-    assert.equal(short.headers['x-content-sha256'], asset.object.sha256);
+    assert.equal(short.headers['x-content-sha256'], asset.sha.replace(/^sha256:/, ''));
     // wrong ext → 404; too-short nonsense → 404
-    const badExt = asset.contentUrl.replace(/\.(png|jpg|gif)$/, '.webp');
+    const badExt = asset.url.replace(/\.(png|jpg|gif)$/, '.webp');
     assert.equal((await ctx.app.inject({ method: 'GET', url: badExt })).statusCode, 404);
     assert.equal((await ctx.app.inject({ method: 'GET', url: '/v1/asset/deadbeef.png' })).statusCode, 404);
 
@@ -79,7 +82,7 @@ test('upload commits exactly one atomic commit that passes A validateRepo', asyn
     assert.ok(!JSON.stringify(ctx.gh.headPaths().map((p) => ctx.gh.headFile(p)!.toString('latin1'))).includes(TOKENS.xiaozhi));
     // searchable immediately at the new commit
     const s = await ctx.app.inject({ method: 'GET', url: `/v1/assets?q=${encodeURIComponent('测试图')}` });
-    assert.equal(s.json().items[0].id, id);
+    assert.equal(s.json().items[0].id, id.replace(/^sha256:/, '').slice(0, 12));
     // A's own full validator accepts the resulting tree (byte-identical indexes, budgets, schemas)
     const dir = exportHeadTree(ctx.gh);
     const v = validateRepo(dir);
@@ -221,7 +224,7 @@ test('search: keyword, tag, category, sort=uploaded, pagination, bounded limit',
     await upload(ctx.app, makePng(14, 14), { meta: META({ title: '打工好累', categories: ['work'], tags: ['打工'] }) });
     const q = await ctx.app.inject({ method: 'GET', url: `/v1/assets?q=${encodeURIComponent('打工')}` });
     assert.equal(q.json().items.length, 2);
-    assert.ok(q.json().items.every((i: any) => typeof i.score === 'number'));
+    assert.ok(q.json().items.every((i: any) => i.sources === undefined && typeof i.url === 'string'));
     const cat = await ctx.app.inject({ method: 'GET', url: '/v1/assets?category=greeting' });
     assert.deepEqual(cat.json().items.map((i: any) => i.title), ['打工人早安']);
     const tag = await ctx.app.inject({ method: 'GET', url: `/v1/assets?tag=${encodeURIComponent('早安')}` });
@@ -232,8 +235,8 @@ test('search: keyword, tag, category, sort=uploaded, pagination, bounded limit',
     assert.deepEqual(up.json().items.map((i: any) => i.title), ['打工好累', '打工人早安']);
     const p1 = await ctx.app.inject({ method: 'GET', url: '/v1/assets?limit=2' });
     assert.equal(p1.json().items.length, 2);
-    assert.ok(p1.json().nextCursor);
-    const p2 = await ctx.app.inject({ method: 'GET', url: `/v1/assets?limit=2&cursor=${p1.json().nextCursor}` });
+    assert.ok(p1.json().next);
+    const p2 = await ctx.app.inject({ method: 'GET', url: `/v1/assets?limit=2&cursor=${p1.json().next}` });
     assert.notEqual(p2.json().items[0].id, p1.json().items[0].id);
     assert.equal((await ctx.app.inject({ method: 'GET', url: '/v1/assets?limit=51' })).statusCode, 400);
     const none = await ctx.app.inject({ method: 'GET', url: `/v1/assets?q=${encodeURIComponent('不存在的词')}` });
@@ -304,8 +307,7 @@ test('mirrors: only A-enabled+verified AND B-allowlisted hosts; raw always kept 
     ctx.gh.commitFiles({ 'config/mirrors.json': JSON.stringify(mirrors, null, 2) + '\n' });
     await new Promise((r) => setTimeout(r, 1100));
     const list = (await ctx.app.inject({ method: 'GET', url: '/v1/assets?limit=1' })).json();
-    const ids = list.items[0].sources.map((s: any) => s.id);
-    assert.deepEqual(ids, ['gh-proxy', 'github-raw'], 'ghfast enabled in A but not allowlisted in B');
+    assert.equal(list.items[0].sources, undefined);
     const id = list.items[0].id;
     const c = await ctx.app.inject({ method: 'GET', url: `/v1/assets/${id}/content` });
     assert.match(c.headers.location as string, /^https:\/\/gh-proxy\.com\/https:\/\/raw\.githubusercontent\.com\/example-owner\/sticker-assets\/[0-9a-f]{40}\//);
@@ -359,8 +361,9 @@ test('short /v1/asset/<hex>.<ext> accepts longer prefixes and keeps legacy conte
   const ctx = await createCtx();
   try {
     const item = (await ctx.app.inject({ method: 'GET', url: '/v1/assets?limit=1' })).json().items[0];
-    const sha = item.id.replace(/^sha256:/, '');
-    const ext = item.contentUrl.split('.').pop();
+    const det = (await ctx.app.inject({ method: 'GET', url: `/v1/assets/${item.id}` })).json();
+    const sha = det.sha.replace(/^sha256:/, '');
+    const ext = item.url.split('.').pop();
     const full = await ctx.app.inject({ method: 'GET', url: `/v1/asset/${sha}.${ext}` });
     assert.equal(full.statusCode, 302);
     const legacy = await ctx.app.inject({ method: 'GET', url: `/v1/assets/${item.id}/content` });

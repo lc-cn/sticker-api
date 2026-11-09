@@ -83,28 +83,45 @@ export class RenderService {
 
   async list() {
     const snap = await this.assets.snapshot();
-    const mirrors = await this.assets.mirrors(snap);
     const out = [];
     for (const e of await this.catalogTemplates(snap)) {
       const t = await snap.json<LightTemplate>(e.path);
       if (!t) continue;
       const r = this.renderable(t);
-      // Thumbnail = the first image layer's file (template base image), pinned to this commit via mirrors.
-      const base = t.layers.find((l) => l.type === 'image' && 'file' in l && typeof (l as { file?: unknown }).file === 'string') as { file: string } | undefined;
-      const dir = e.path.replace(/template\.json$/, '');
-      const preview = base ? this.assets.sources(snap.commit, dir + base.file, mirrors) : [];
-      const description = typeof (t as { description?: unknown }).description === 'string'
-        ? (t as { description: string }).description.slice(0, 120)
-        : '';
-      out.push({
-        id: t.id, version: t.version, title: t.title, description,
-        inputs: t.inputs, params: t.params, output: t.output,
-        canvas: { width: t.canvas.width, height: t.canvas.height }, licenseIds: t.licenseIds,
-        tags: (t as { tags?: string[] }).tags ?? [], preview,
-        renderable: r.ok, unavailableReason: r.reason,
-      });
+      if (!r.ok) continue; // tool surface: only renderable templates
+      const item: Record<string, unknown> = {
+        id: t.id,
+        title: t.title,
+        // Compact inputs (same keys the homepage already reads).
+        inputs: {
+          texts: { min: t.inputs.texts.min, max: t.inputs.texts.max, maxLength: t.inputs.texts.maxLength },
+          images: { min: t.inputs.images.min, max: t.inputs.images.max },
+        },
+        preview: `/v1/templates/${t.id}/preview`,
+      };
+      const tags = (t as { tags?: string[] }).tags ?? [];
+      if (tags.length) item.tags = tags.slice(0, 3);
+      if (t.params?.length) item.params = t.params.map((p) => p.name);
+      out.push(item);
     }
-    return { commit: snap.commit, templates: out };
+    return { items: out };
+  }
+
+  /** 302 target for GET /v1/templates/:id/preview (first image layer file). */
+  async previewTarget(id: string): Promise<{ url: string }> {
+    if (!/^[a-z0-9][a-z0-9-]{1,47}$/.test(id)) throw new AppError(404, 'template_not_found', 'Unknown or disabled template');
+    const snap = await this.assets.snapshot();
+    const entry = (await this.catalogTemplates(snap)).find((e) => e.id === id);
+    if (!entry) throw new AppError(404, 'template_not_found', 'Unknown or disabled template');
+    const t = await snap.json<LightTemplate>(entry.path);
+    if (!t) throw new AppError(404, 'template_not_found', 'Unknown or disabled template');
+    const base = t.layers.find((l) => l.type === 'image' && 'file' in l && typeof (l as { file?: unknown }).file === 'string') as { file: string } | undefined;
+    if (!base) throw new AppError(404, 'template_not_found', 'Template has no preview image');
+    const dir = entry.path.replace(/template\.json$/, '');
+    const mirrors = await this.assets.mirrors(snap);
+    const list = this.assets.sources(snap.commit, dir + base.file, mirrors);
+    if (!list.length) throw new AppError(503, 'no_source', 'No content source configured');
+    return { url: list[0]!.url };
   }
 
   private rateLimit(p: RenderCaller) {

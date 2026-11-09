@@ -6,6 +6,8 @@ B 不持有数据库、不写本地盘，所有读都钉在 A 的某个 commit �
 - A 契约：`vendor/sticker-assets/CONTRACT.md`（由 `pnpm vendor:a` 从 A 固定 commit 原样复制，见 `vendor/sticker-assets/VERSION.json`）
 - B 直接调用 A 的 `lib/`（commit-plan / search / indexer / validator / schemas），保证与 A 的构建/校验字节一致
 
+公开读接口面向 **AI tool**：列表/搜索默认短字段（`id`/`url`/`title`/…），**不含** `sources` 镜像数组或许可长文；机器可读见 `/tool.schema.json`。
+
 ## 结构
 
 ```
@@ -16,7 +18,7 @@ public/assets/          首页/后台的 CSS、原生 ES module JS（无构建�
 src/app.ts              Fastify 组装：错误格式、no-store、multipart 原始体收集
 src/config.ts           环境变量解析（fail closed + warnings）
 src/auth/               机器 token(仅存 sha256)、管理员 GitHub 登录会话、CSRF、Cookie
-src/routes/             /v1 路由（api.ts / auth.ts）+ 页面路由 web.ts（/、/docs、/admin、/openapi.yaml、/assets/*）
+src/routes/             /v1 路由（api.ts / auth.ts）+ 页面路由 web.ts（/、/docs、/admin、/openapi.yaml、/tool.schema.json、/assets/*）
 src/services/collect.ts 采集来源（A config/collect-sources.json）、触发 A collect.yml（workflow_dispatch）、运行列表
 src/http/               client-ip（可信代理才读转发头）、rate-limit（内存滑动窗口）
 src/repo/               HEAD 缓存、Snapshot(单 commit + 读预算 + LRU)、sync-read 适配、Publisher(Git Data API)

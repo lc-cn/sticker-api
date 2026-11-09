@@ -1,221 +1,92 @@
 openapi: 3.1.0
 info:
-  title: sticker-api (B)
-  version: 1.0.0
-  description: Stateless API over the A repo (sticker-assets). All reads pinned to one A commit; all writes are one atomic A commit.
+  title: sticker-api
+  version: 2.0.0
+  description: |
+    Compact sticker API for AI tools. Prefer short fields; list/search never includes mirror arrays,
+    provenance, or license notices (see repo licenses/ and /docs). Image bytes via short /v1/asset URLs.
 servers:
   - url: https://sticker.l2cl.link
-components:
-  securitySchemes:
-    machine: { type: http, scheme: bearer, description: "Scoped machine token (only sha256 stored server-side)" }
-    adminSession: { type: apiKey, in: cookie, name: __Host-sticker_session, description: "GitHub-login admin session; writes also need Origin + X-CSRF-Token" }
-  parameters:
-    AssetId: { name: id, in: path, required: true, schema: { type: string, pattern: "^sha256:[0-9a-f]{64}$" } }
-    IdempotencyKey: { name: Idempotency-Key, in: header, required: true, schema: { type: string, pattern: "^[A-Za-z0-9_-]{16,128}$" } }
-    IfMatch: { name: If-Match, in: header, required: true, schema: { type: string, example: '"3"' } }
-  schemas:
-    Error:
-      type: object
-      properties:
-        error:
-          type: object
-          required: [code, message, requestId, retryable]
-          properties:
-            code: { type: string }
-            message: { type: string }
-            requestId: { type: string }
-            retryable: { type: boolean }
-            details: { type: object }
-    Asset:
-      type: object
-      description: A asset record (see vendor/sticker-assets/schemas/v1/asset.schema.json) plus uploadedAtLocal, contentUrl (short /v1/asset/<12hex>.<ext>), sources (mirror candidates)
-    Receipt:
-      type: object
-      properties:
-        operationId: { type: string, pattern: "^op_[0-9a-f]{32}$" }
-        commit: { type: string }
-        status: { enum: [created, duplicate, updated, tombstoned, unchanged, replayed] }
-        replayedType: { type: string }
-        asset: { $ref: "#/components/schemas/Asset" }
-  responses:
-    Err: { description: Error, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 paths:
   /v1/health:
-    get: { summary: "Liveness + config warnings count; flags: repoConfigured, writes, renders, publicRenders, content, adminLogin", responses: { "200": { description: ok } } }
-  /v1/categories:
-    get: { summary: "Public taxonomy from A config/taxonomy.json with live counts", responses: { "200": { description: "{commit, categories[{slug,label,count}]}" } } }
+    get:
+      summary: Liveness flags
+      responses:
+        "200":
+          description: "{ok,writes,renders,publicRenders,...}"
   /v1/assets:
     get:
-      summary: Search (public)
+      summary: Search/list (compact)
       parameters:
         - { name: q, in: query, schema: { type: string, maxLength: 64 } }
         - { name: category, in: query, schema: { type: string } }
         - { name: tag, in: query, schema: { type: string } }
-        - { name: sort, in: query, schema: { enum: [relevance, uploaded] }, description: "default: relevance with q, uploaded without" }
+        - { name: sort, in: query, schema: { enum: [relevance, uploaded] } }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
         - { name: cursor, in: query, schema: { type: string } }
-      responses: { "200": { description: "{commit, items[], nextCursor}" }, "400": { $ref: "#/components/responses/Err" }, "503": { $ref: "#/components/responses/Err" } }
-    post:
-      summary: Upload (multipart file + metadata)
-      security: [{ machine: [] }, { adminSession: [] }]
-      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [file, metadata]
-              properties:
-                file: { type: string, format: binary, description: "PNG/JPEG/GIF ≤2 MiB, long edge ≤2048, ≤4 MP, ≤60 frames; privacy metadata stripped" }
-                metadata: { type: string, description: "JSON: title, categories[], tags[], aliases[], language, tone, safety, text, source, firstSeenAt, rights{basis,licenseId,...}, shareable:true" }
       responses:
-        "201": { description: created, content: { application/json: { schema: { $ref: "#/components/schemas/Receipt" } } } }
-        "200": { description: duplicate (existing asset, uploadedAt unchanged) or replayed }
-        "400": { $ref: "#/components/responses/Err" }
-        "401": { $ref: "#/components/responses/Err" }
-        "403": { $ref: "#/components/responses/Err" }
-        "409": { description: "idempotency_conflict | asset_tombstoned | publish_conflict (retryable)" }
-        "413": { $ref: "#/components/responses/Err" }
-        "415": { $ref: "#/components/responses/Err" }
-        "422": { $ref: "#/components/responses/Err" }
-        "428": { $ref: "#/components/responses/Err" }
-        "429": { description: daily_budget_exceeded }
-        "503": { description: "state_unverifiable | upstream_rate_limited (Retry-After) | writes_disabled" }
-  /v1/assets/batch:
+        "200":
+          description: |
+            `{n, next?, trunc?, items:[{id,url,title,tags?,cats?,w,h,mime,bytes,uploadedAt,rev,anim?}]}`
+            `id` = 12-hex; `url` = `/v1/asset/<id>.<ext>` (302 to image). No `sources`.
     post:
-      summary: Batch upload (many files → one GitHub commit)
-      description: |
-        Multipart field `metadata` = JSON array of per-asset metadata objects (same order as `file` parts).
-        Repeated multipart field name `file`. Caps: 20 items / 3 MiB image bytes / 4 MiB whole body
-        (Vercel serverless limit). One Idempotency-Key covers the whole batch. Event type `import.batch`.
-        Per-item results may mix created|duplicate|error; daily/capacity errors abort remaining items
-        but still commit successes.
-      security: [{ bearerAuth: [] }, { cookieAuth: [] }]
-      parameters:
-        - in: header
-          name: Idempotency-Key
-          required: true
-          schema: { type: string, minLength: 16, maxLength: 128, pattern: '^[A-Za-z0-9_-]+$' }
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [metadata, file]
-              properties:
-                metadata: { type: string, description: JSON array of metadata objects }
-                file: { type: array, items: { type: string, format: binary } }
-      responses:
-        '201': { description: At least one asset created }
-        '200': { description: Replay or all duplicates/unchanged }
-        '400': { description: Invalid batch shape }
-        '413': { description: Payload too large }
+      summary: Upload (auth)
+      description: Multipart file+metadata; machine/admin only. See full admin docs.
+      responses: { "201": { description: receipt } }
   /v1/assets/{id}:
-
-    parameters: [{ $ref: "#/components/parameters/AssetId" }]
-    get: { summary: Detail (public), responses: { "200": { description: "{commit, asset}" }, "404": { $ref: "#/components/responses/Err" }, "410": { $ref: "#/components/responses/Err" } } }
-    patch:
-      summary: Edit metadata (title/categories/tags/aliases/language/tone/safety/text/source)
-      security: [{ machine: [] }, { adminSession: [] }]
-      parameters: [{ $ref: "#/components/parameters/IfMatch" }]
-      responses: { "200": { description: Receipt }, "412": { $ref: "#/components/responses/Err" }, "428": { $ref: "#/components/responses/Err" } }
-    delete:
-      summary: Tombstone (removes object from current tree; future re-upload rejected)
-      security: [{ machine: [] }, { adminSession: [] }]
+    get:
+      summary: Detail (compact, no sources)
       parameters:
-        - { name: reason, in: query, required: true, schema: { enum: [rights, privacy, quality, duplicate, policy, other] } }
-        - { name: If-Match, in: header, required: false, schema: { type: string } }
-      responses: { "200": { description: "Receipt (tombstoned | unchanged)" } }
-  /v1/assets/{id}/review:
-    parameters: [{ $ref: "#/components/parameters/AssetId" }]
-    post:
-      summary: "Archive ({status:'archived'}) or re-review rights ({rights:{...}}); restore → 501 in v1"
-      security: [{ machine: [] }, { adminSession: [] }]
-      parameters: [{ $ref: "#/components/parameters/IfMatch" }]
-      responses: { "200": { description: Receipt }, "501": { $ref: "#/components/responses/Err" } }
-  /v1/assets/{id}/content:
-    parameters: [{ $ref: "#/components/parameters/AssetId" }, { name: source, in: query, schema: { type: string } }]
-    get: { summary: "302 to mirror candidate or raw (pinned commit). Prefer contentUrl short form /v1/asset/{shortId}.{ext}.", responses: { "302": { description: "Location + x-content-sha256 + x-asset-commit" }, "410": { $ref: "#/components/responses/Err" } } }
+        - { name: id, in: path, required: true, schema: { type: string }, description: "12-hex short id, or sha256:<64hex>" }
+      responses:
+        "200":
+          description: "{id,url,title,tags?,cats?,w,h,mime,bytes,anim?,rev,status,uploadedAt,tone?,safety?,rights?,sha,...}"
+    patch:
+      summary: Edit metadata (auth)
+      responses: { "200": { description: receipt } }
+    delete:
+      summary: Tombstone (auth)
+      responses: { "200": { description: receipt } }
   /v1/asset/{file}:
     get:
-      summary: "Short public image URL — 302 to the same mirror chain as /v1/assets/{id}/content"
-      description: |
-        `{file}` = `<hex>.<ext>` where hex is 8–64 hex of the object sha256 (canonical short id = first 12,
-        matching A's indexes/docs docKey) and ext is png|jpg|jpeg|gif|webp matching the stored mime.
-        Ambiguous short prefixes → 409 ambiguous_id. Wrong ext → 404. Legacy long content URL still works.
+      summary: Short image URL → 302
       parameters:
-        - { name: file, in: path, required: true, schema: { type: string, pattern: "^[0-9a-fA-F]{8,64}\.(png|jpe?g|gif|webp)$" } }
-      responses:
-        "302": { description: "Location + x-content-sha256 + x-asset-commit" }
-        "404": { $ref: "#/components/responses/Err" }
-        "409": { description: "ambiguous_id — prefix matches multiple assets" }
-        "410": { $ref: "#/components/responses/Err" }
+        - { name: file, in: path, required: true, schema: { type: string, pattern: "^[0-9a-fA-F]{8,64}\\.(png|jpe?g|gif|webp)$" } }
+      responses: { "302": { description: Location } }
+  /v1/assets/{id}/content:
+    get:
+      summary: Legacy content 302 (prefer /v1/asset/...)
+      responses: { "302": { description: Location } }
+  /v1/categories:
+    get:
+      summary: Taxonomy with counts
+      responses: { "200": { description: "{commit,categories:[{slug,label,count}]}" } }
   /v1/templates:
-    get: { summary: "Active templates with inputs, tags, short description, preview (mirror URLs of the base image, pinned to commit), renderable/unavailableReason. Long provenance/notice is NOT returned — see A licenses/ + template.source in-repo.", responses: { "200": { description: "{commit, templates[]}" } } }
+    get:
+      summary: Renderable templates (compact)
+      responses:
+        "200":
+          description: "{items:[{id,title,inputs:{texts,images},preview,tags?,params?}]}"
+  /v1/templates/{id}/preview:
+    get:
+      summary: Template thumb → 302
+      responses: { "302": { description: Location } }
   /v1/renders:
     post:
-      summary: Render a light-v1 template to PNG
+      summary: Render PNG (JSON or multipart)
       description: |
-        Authenticated: machine token with scope `render` (or admin session + CSRF); limit RENDER_PER_MINUTE per principal.
-        Anonymous (homepage): when PUBLIC_RENDERS_ENABLED=true, a request with NO Authorization header and NO admin
-        cookie is accepted as an anonymous principal, rate limited per client IP (PUBLIC_RENDER_PER_MINUTE, default 6;
-        PUBLIC_RENDER_PER_DAY, default 100) → 429 + Retry-After. Counters are in memory per server instance (not a
-        global quota). Client IP = x-real-ip / first x-forwarded-for hop only behind a trusted proxy (Vercel), else
-        the socket peer. Anonymous callers may only reference active (public) assetIds. Same size/time limits apply.
-        When disabled, anonymous requests get 401 as before.
-        imageUrls: optional per-slot http(s) URLs fetched server-side with SSRF protections (public DNS only,
-        no loopback/private/link-local/metadata, credentials forbidden, ≤3 redirects re-checked, 8s timeout,
-        ≤5 MiB download then ≤1 MiB validated image). Same anonymous/auth rate limits apply.
-      security: [{ machine: [] }, { adminSession: [] }, {}]
-      requestBody:
-        content:
-          application/json: { schema: { type: object, required: [template], properties: { template: { type: string }, version: { type: integer }, texts: { type: array, items: { type: string } }, params: { type: object }, assetIds: { type: array, items: { type: string } }, imageUrls: { type: array, maxItems: 2, items: { type: [string, "null"] }, description: "Per-slot http(s) image URLs. Non-empty entry at index i fills that slot (server fetches with SSRF protections); null/omit takes the next multipart image. Counts against the same render rate limit." } } } }
-          multipart/form-data: { schema: { type: object, properties: { request: { type: string, description: "same JSON (may include imageUrls)" }, image: { type: string, format: binary, description: "≤1 MiB each after re-encode, ≤2 MiB total; slot order pairs with imageUrls" } } } }
-      responses: { "200": { description: image/png }, "400": { description: "invalid_image_url | ssrf_blocked | image_fetch_failed | invalid_image | …" }, "404": { $ref: "#/components/responses/Err" }, "429": { $ref: "#/components/responses/Err" }, "503": { description: "template_unavailable | render_timeout | renders_disabled" } }
-  /v1/operations/{op}:
-    get:
-      summary: Operation receipt (machines must send the original Idempotency-Key)
-      security: [{ machine: [] }, { adminSession: [] }]
-      parameters: [{ name: op, in: path, required: true, schema: { type: string } }]
-      responses: { "200": { description: "{commit, event}" }, "403": { $ref: "#/components/responses/Err" } }
-  /v1/collect/sources:
-    get:
-      summary: Collection sources registered in A config/collect-sources.json (admin session or scope collect:trigger)
-      security: [{ machine: [] }, { adminSession: [] }]
-      responses: { "200": { description: "{commit, workflow, sources[{id,label,approved,description}]}" }, "401": { $ref: "#/components/responses/Err" }, "403": { $ref: "#/components/responses/Err" } }
-  /v1/collect-runs:
-    get:
-      summary: Recent runs of A's collect workflow (GitHub Actions)
-      security: [{ machine: [] }, { adminSession: [] }]
-      responses: { "200": { description: "{workflow, runsUrl, runs[{id,runNumber,title,event,status,conclusion,createdAt,url}]}" }, "503": { description: "actions_permission: writer App lacks Actions: Read and write" } }
+        Body `{template, texts?, params?, assetIds?, imageUrls?}` or multipart `request`+`image`.
+        Response is raw `image/png` (not JSON). Auth token or anonymous when publicRenders enabled.
+      responses: { "200": { description: image/png } }
+  /v1/assets/batch:
     post:
-      summary: "Dispatch A's collect workflow (workflow_dispatch, inputs source + dry_run). Cookie sessions need Origin + X-CSRF-Token."
-      security: [{ machine: [] }, { adminSession: [] }]
-      requestBody:
-        content:
-          application/json: { schema: { type: object, required: [source], additionalProperties: false, properties: { source: { type: string, pattern: "^[a-z0-9][a-z0-9-]{0,31}$" }, dryRun: { type: boolean, default: true } } } }
-      responses:
-        "202": { description: "{dispatched, source, dryRun, workflow, runsUrl}" }
-        "404": { description: unknown_source }
-        "429": { description: "per-source cooldown (COLLECT_COOLDOWN_SECONDS, per instance) + Retry-After" }
-        "503": { description: "actions_permission (writer App needs Actions: Read and write) | actions_unconfigured" }
-  /v1/auth/github/start:
-    get:
-      summary: Begin admin GitHub login (state + PKCE S256)
-      parameters: [{ name: next, in: query, schema: { enum: [admin] }, description: "admin → callback redirects to /admin (non-admin → /admin?login=forbidden)" }]
-      responses: { "302": { description: to GitHub } }
-  /v1/auth/github/callback:
-    get: { summary: Finish login; non-allowlisted numeric id → 403 and no session, responses: { "303": { description: to /v1/auth/session }, "400": { $ref: "#/components/responses/Err" }, "403": { $ref: "#/components/responses/Err" } } }
-  /v1/auth/session:
-    get: { summary: "{authenticated, admin, expiresAt, csrfToken, repo}", responses: { "200": { description: ok } } }
-  /v1/auth/logout:
-    post: { summary: Clear session (CSRF-checked when a session exists), responses: { "204": { description: ok } } }
-  /:
-    get: { summary: "Public homepage (HTML, CSP)", responses: { "200": { description: text/html } } }
-  /admin:
-    get: { summary: "Admin console shell (HTML, no data; all data via session-gated APIs)", responses: { "200": { description: text/html } } }
-  /docs:
-    get: { summary: "Human API docs page", responses: { "200": { description: text/html } } }
+      summary: Batch upload (auth)
+      responses: { "201": { description: batch receipt } }
   /openapi.yaml:
-    get: { summary: "This document", responses: { "200": { description: text/yaml } } }
+    get:
+      summary: This document
+      responses: { "200": { description: text/yaml } }
+  /tool.schema.json:
+    get:
+      summary: Tiny JSON tool schema for AI agents
+      responses: { "200": { description: application/json } }

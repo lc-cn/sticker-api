@@ -1,5 +1,5 @@
 import {
-  $, el, api, ApiError, imgFromSources, fmtTime, fmtBytes, copyText, saveBlob,
+  $, el, api, ApiError, imgFromUrl, fmtTime, fmtBytes, copyText, saveBlob,
   downloadFromSources, copyImageBlob, extFor, errorText, safeUrl,
 } from './common.js';
 
@@ -32,9 +32,9 @@ async function loadCategories() {
 }
 
 function card(item) {
-  const thumb = el('div', { class: 'thumb' }, imgFromSources(item.sources, item.title));
+  const thumb = el('div', { class: 'thumb' }, imgFromUrl(item.url, item.title));
   const b = el('button', { type: 'button', class: 'card', title: item.title }, thumb,
-    el('div', { class: 'meta' }, item.title || '未命名', item.animated ? el('span', { class: 'badge' }, ' · 动图') : null));
+    el('div', { class: 'meta' }, item.title || '未命名', item.anim ? el('span', { class: 'badge' }, ' · 动图') : null));
   b.addEventListener('click', () => openDetail(item));
   return b;
 }
@@ -53,15 +53,15 @@ async function search(reset) {
     const r = await api(`/v1/assets?${p}`);
     if (reset) grid.replaceChildren();
     grid.append(...r.items.map(card));
-    state.cursor = r.nextCursor;
-    state.total = r.total;
-    moreBtn.classList.toggle('hidden', !r.nextCursor);
+    state.cursor = r.next || null;
+    state.total = r.n ?? 0;
+    moreBtn.classList.toggle('hidden', !r.next);
     const none = grid.children.length === 0;
     $('#empty').classList.toggle('hidden', !none);
     $('#empty-text').textContent = state.q
       ? `没有找到和「${state.q}」相关的表情。`
       : '表情还在路上，这个分类暂时空空的。';
-    $('#result-count').textContent = none ? '' : `共 ${r.total}${r.truncated ? '+' : ''} 张`;
+    $('#result-count').textContent = none ? '' : `共 ${r.n}${r.trunc || r.next ? '+' : ''} 张`;
   } catch (e) {
     const box = $('#grid-error');
     box.textContent = `加载失败：${errorText(e)}`;
@@ -85,28 +85,27 @@ let current = null;
 function openDetail(item) {
   current = item;
   $('#detail-title').textContent = item.title || '未命名';
-  $('#detail-img').replaceChildren(imgFromSources(item.sources, item.title, { lazy: false }));
-  $('#detail-cats').replaceChildren(...(item.categories || []).map((c) => el('span', { class: 'tag' }, state.labels.get(c) || c)));
+  $('#detail-img').replaceChildren(imgFromUrl(item.url, item.title, { lazy: false }));
+  $('#detail-cats').replaceChildren(...(item.cats || item.categories || []).map((c) => el('span', { class: 'tag' }, state.labels.get(c) || c)));
   const tags = item.tags || [];
   $('#detail-tags').replaceChildren(...(tags.length ? tags.map((t) => el('span', { class: 'tag' }, t)) : ['—']));
   $('#detail-time').textContent = fmtTime(item.uploadedAt);
-  $('#detail-size').textContent = `${item.width ?? '?'}×${item.height ?? '?'} · ${fmtBytes(item.bytes)} · ${String(item.mime || '').replace('image/', '').toUpperCase()}`;
-  const short = item.contentUrl ? `${location.origin}${item.contentUrl}` : null;
-  const first = short || safeUrl(item.sources?.[0]?.url);
+  $('#detail-size').textContent = `${item.w ?? item.width ?? '?'}×${item.h ?? item.height ?? '?'} · ${fmtBytes(item.bytes)} · ${String(item.mime || '').replace('image/', '').toUpperCase()}`;
+  const short = item.url ? `${location.origin}${item.url}` : null;
   const open = $('#detail-open');
-  if (first) { open.setAttribute('href', first); open.textContent = short ? '打开短链' : '打开原图'; }
+  if (short) { open.setAttribute('href', short); open.textContent = '打开短链'; }
   else { open.removeAttribute('href'); }
   dlg.showModal();
 }
 $('#detail-close').addEventListener('click', () => dlg.close());
 dlg.addEventListener('click', (ev) => { if (ev.target === dlg) dlg.close(); });
 $('#detail-copy').addEventListener('click', () => {
-  const u = current?.contentUrl ? `${location.origin}${current.contentUrl}` : safeUrl(current?.sources?.[0]?.url);
+  const u = current?.url ? `${location.origin}${current.url}` : null;
   if (u) copyText(u);
 });
 $('#detail-dl').addEventListener('click', () => {
-  if (!current) return;
-  downloadFromSources(current.sources, `${(current.title || 'sticker').slice(0, 40)}.${extFor(current.mime)}`);
+  if (!current?.url) return;
+  downloadFromSources(current.url, `${(current.title || 'sticker').slice(0, 40)}.${extFor(current.mime)}`);
 });
 
 // ---------------------------------------------------------------- maker
@@ -125,7 +124,7 @@ async function loadTemplates() {
   try {
     const [t, h] = await Promise.all([api('/v1/templates'), api('/v1/health').catch(() => null)]);
     publicRenders = !!(h && h.publicRenders);
-    templates = t.templates.filter((x) => x.renderable);
+    templates = t.items || t.templates || [];
     if (!templates.length) {
       box.replaceChildren(el('div', { class: 'muted' }, '暂时没有可用的模板。'));
       return;
@@ -133,7 +132,7 @@ async function loadTemplates() {
     box.replaceChildren(...templates.map((tpl) => {
       const kind = tpl.inputs.images.max > 0 ? `放 ${tpl.inputs.images.max} 张图` : `${tpl.inputs.texts.max} 段文字`;
       const btn = el('button', { type: 'button', class: 'tpl', dataset: { id: tpl.id }, 'aria-pressed': 'false', onclick: () => pick(tpl) },
-        el('div', { class: 'thumb' }, imgFromSources(tpl.preview, tpl.title)),
+        el('div', { class: 'thumb' }, imgFromUrl(tpl.preview, tpl.title)),
         el('div', { class: 'meta' },
           el('div', { class: 'name' }, tpl.title),
           el('div', { class: 'sub' }, kind)));

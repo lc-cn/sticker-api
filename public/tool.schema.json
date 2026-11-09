@@ -1,0 +1,39 @@
+{
+  "name": "sticker-api",
+  "base": "https://sticker.l2cl.link",
+  "note": "Compact read API for AI tools. Never expect sources/mirrors/license arrays in JSON.",
+  "tools": [
+    {
+      "name": "search",
+      "method": "GET",
+      "path": "/v1/assets",
+      "query": { "q": "string?", "category": "string?", "tag": "string?", "limit": "1..50=20", "cursor": "string?" },
+      "returns": { "n": "number", "next": "string?", "items": [{ "id": "12hex", "url": "/v1/asset/12hex.ext", "title": "string", "tags": "string[]?", "cats": "string[]?" }] }
+    },
+    {
+      "name": "get",
+      "method": "GET",
+      "path": "/v1/assets/{id}",
+      "returns": { "id": "12hex", "url": "string", "title": "string", "tags": "string[]?", "cats": "string[]?", "w": "number", "h": "number", "mime": "string" }
+    },
+    {
+      "name": "image",
+      "method": "GET",
+      "path": "/v1/asset/{id}.{ext}",
+      "returns": "302 → image bytes"
+    },
+    {
+      "name": "templates",
+      "method": "GET",
+      "path": "/v1/templates",
+      "returns": { "items": [{ "id": "string", "title": "string", "inputs": { "texts": "object", "images": "object" }, "preview": "/v1/templates/{id}/preview" }] }
+    },
+    {
+      "name": "render",
+      "method": "POST",
+      "path": "/v1/renders",
+      "body": { "template": "string", "texts": "string[]?" },
+      "returns": "image/png bytes"
+    }
+  ]
+}

@@ -68,7 +68,7 @@ export async function registerApiRoutes(
     noStore(reply);
     const { id } = req.params as { id: string };
     const r = await assets.get(id);
-    reply.header('etag', `"${r.asset.revision}"`);
+    if (typeof r.rev === 'number') reply.header('etag', `"${r.rev}"`);
     return r;
   });
 
@@ -104,6 +104,15 @@ export async function registerApiRoutes(
   app.get('/v1/templates', async (_req, reply) => {
     noStore(reply);
     return renders.list();
+  });
+
+  // Short template thumb: /v1/templates/:id/preview → 302 to mirror (same chain as asset content).
+  app.get('/v1/templates/:id/preview', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const t = await renders.previewTarget(id);
+    return reply
+      .header('cache-control', 'public, max-age=300, stale-while-revalidate=600')
+      .redirect(t.url, 302);
   });
 
   // ---------- writes ----------

@@ -63,6 +63,11 @@ export async function api(path, opts = {}) {
   throw new ApiError(res.status, code, message, Number(res.headers.get('retry-after')) || null);
 }
 
+/** Single image URL (short /v1/asset or /v1/templates/.../preview). */
+export function imgFromUrl(url, alt = '', { lazy = true, cls } = {}) {
+  return imgFromSources([url], alt, { lazy, cls });
+}
+
 /** Try each source URL in order; on error fall back to the next one. */
 export function imgFromSources(sources, alt = '', { lazy = true, cls } = {}) {
   const urls = (sources || []).map((s) => safeUrl(typeof s === 'string' ? s : s.url)).filter(Boolean);
@@ -124,17 +129,18 @@ export function saveBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-/** Fetch a remote image (CORS-enabled mirror) to save it with a filename; fall back to opening it. */
+/** Fetch image(s) to save with a filename; accepts a URL string or [{url}|string] list. */
 export async function downloadFromSources(sources, filename) {
-  for (const s of sources || []) {
-    const u = safeUrl(s.url || s);
+  const list = typeof sources === 'string' ? [sources] : (sources || []);
+  for (const s of list) {
+    const u = safeUrl(typeof s === 'string' ? s : s.url);
     if (!u) continue;
     try {
-      const r = await fetch(u, { credentials: 'omit', referrerPolicy: 'no-referrer' });
+      const r = await fetch(u, { credentials: 'same-origin', referrerPolicy: 'no-referrer' });
       if (r.ok) return saveBlob(await r.blob(), filename);
     } catch {}
   }
-  const first = safeUrl(sources?.[0]?.url || sources?.[0]);
+  const first = safeUrl(typeof list[0] === 'string' ? list[0] : list[0]?.url);
   if (first) window.open(first, '_blank', 'noopener');
 }
 

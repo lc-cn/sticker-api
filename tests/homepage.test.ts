@@ -122,7 +122,10 @@ test('homepage, docs, admin shell and static assets: CSP, caching, no traversal'
     assert.equal((await ctx.app.inject({ method: 'GET', url: '/assets/nope.exe' })).statusCode, 404);
     const spec = await ctx.app.inject({ method: 'GET', url: '/openapi.yaml' });
     assert.equal(spec.statusCode, 200);
-    assert.match(spec.body, /PUBLIC_RENDERS_ENABLED|anonymous/i);
+    assert.match(spec.body, /tool|compact|sources/i);
+    const tools = await ctx.app.inject({ method: 'GET', url: '/tool.schema.json' });
+    assert.equal(tools.statusCode, 200);
+    assert.match(tools.body, /"search"/);
     // unknown routes keep the JSON 404
     assert.equal((await ctx.app.inject({ method: 'GET', url: '/nope' })).json().error.code, 'not_found');
   } finally {
@@ -130,14 +133,19 @@ test('homepage, docs, admin shell and static assets: CSP, caching, no traversal'
   }
 });
 
-test('templates expose preview sources; categories endpoint is public', async () => {
+test('templates are compact (short preview path, no mirror arrays); categories public', async () => {
   const ctx = await createCtx();
   try {
-    const t = (await ctx.app.inject({ method: 'GET', url: '/v1/templates' })).json().templates;
+    const body = (await ctx.app.inject({ method: 'GET', url: '/v1/templates' })).json();
+    const t = body.items;
     assert.ok(t.length > 0);
-    assert.ok(Array.isArray(t[0].preview));
-    assert.equal(t[0].notice, undefined, 'long provenance notice must not be returned to the UI');
-    assert.ok(typeof t[0].description === 'string');
+    assert.match(t[0].preview, /^\/v1\/templates\/[a-z0-9-]+\/preview$/);
+    assert.equal(t[0].notice, undefined, 'long provenance notice must not be returned');
+    assert.equal(t[0].licenseIds, undefined);
+    assert.ok(t[0].inputs?.texts && t[0].inputs?.images);
+    const prev = await ctx.app.inject({ method: 'GET', url: t[0].preview });
+    assert.equal(prev.statusCode, 302);
+    assert.match(String(prev.headers.location), /^https:\/\//);
     const c = await ctx.app.inject({ method: 'GET', url: '/v1/categories' });
     assert.equal(c.statusCode, 200);
     const cats = c.json().categories;

@@ -68,12 +68,6 @@ export function mimeFromExt(ext: string): string | null {
   return MIME_BY_EXT[ext.toLowerCase()] ?? null;
 }
 
-const manilaFmt = new Intl.DateTimeFormat('sv-SE', {
-  timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-});
-/** Display helper: "2026-11-09T11:28:00+08:00" (Asia/Manila). Storage stays UTC Z. */
-export const toManila = (utc: string | null) => (utc ? `${manilaFmt.format(new Date(utc)).replace(' ', 'T')}+08:00` : null);
-
 type Plan =
   | { kind: 'noop'; status: Receipt['status']; record: AssetRecord }
   | { kind: 'change'; status: Receipt['status']; after: AssetRecord; changes: Changes; seen: Map<string, string | undefined> };
@@ -136,7 +130,46 @@ export class AssetService {
     return mirrors ? candidateUrls({ commit, path }, mirrors) : [];
   }
 
-  publicAsset(r: AssetRecord, commit: string, mirrors: MirrorsConfig | null) {
+  /** Compact public/tool shape. No mirror arrays, provenance, or long sha in `id`. */
+  compactAsset(r: AssetRecord, opts: { detail?: boolean } = {}) {
+    const live = r.status !== 'tombstoned';
+    const sha = r.object.sha256;
+    const out: Record<string, unknown> = {
+      id: sha.slice(0, SHORT_ID_LEN),
+      title: r.title,
+    };
+    if (live) out.url = shortContentPath(sha, r.object.mime);
+    if (r.tags?.length) out.tags = opts.detail ? r.tags : r.tags.slice(0, 3);
+    if (r.categories?.length) out.cats = r.categories;
+    out.w = r.object.width;
+    out.h = r.object.height;
+    out.mime = r.object.mime;
+    out.bytes = r.object.bytes;
+    if (r.object.animated) out.anim = true;
+    if (opts.detail) {
+      if (r.object.frames > 1) out.frames = r.object.frames;
+      out.rev = r.revision;
+      out.status = r.status;
+      out.uploadedAt = r.uploadedAt;
+      if (r.tone) out.tone = r.tone;
+      if (r.safety) out.safety = r.safety;
+      if (r.language) out.lang = r.language;
+      if (r.aliases?.length) out.aliases = r.aliases;
+      if (r.text) out.text = r.text;
+      if (r.rights) out.rights = r.rights;
+      if (r.archivedAt) out.archivedAt = r.archivedAt;
+      if (r.deletedAt) out.deletedAt = r.deletedAt;
+      // Full content-addressed id for write/If-Match flows (admin); tools can ignore.
+      out.sha = r.id;
+    } else {
+      out.uploadedAt = r.uploadedAt;
+      out.rev = r.revision;
+    }
+    return out;
+  }
+
+  /** Write-receipt shape: schema fields admin/machines need, never mirror arrays. */
+  publicAsset(r: AssetRecord, _commit: string, _mirrors: MirrorsConfig | null) {
     const live = r.status !== 'tombstoned';
     return {
       id: r.id,
@@ -152,42 +185,44 @@ export class AssetService {
       text: r.text,
       object: { sha256: r.object.sha256, mime: r.object.mime, bytes: r.object.bytes, width: r.object.width, height: r.object.height, frames: r.object.frames, animated: r.object.animated },
       uploadedAt: r.uploadedAt,
-      uploadedAtLocal: toManila(r.uploadedAt),
       firstSeenAt: r.firstSeenAt,
       source: r.source,
       rights: r.rights,
       updatedAt: r.updatedAt,
       archivedAt: r.archivedAt,
       deletedAt: r.deletedAt,
-      contentUrl: live ? shortContentPath(r.object.sha256, r.object.mime) : null,
-      sources: live ? this.sources(commit, r.object.path, mirrors) : [],
+      url: live ? shortContentPath(r.object.sha256, r.object.mime) : null,
     };
   }
 
   async get(rawId: string) {
-    const sha = parseAssetId(rawId);
-    const snap = await this.snapshot();
-    const r = await this.record(snap, sha);
-    if (!r) throw new AppError(404, 'not_found', 'Unknown asset id');
+    const { record: r } = await this.resolveAssetRef(rawId);
     if (r.status === 'tombstoned') {
-      throw new AppError(410, 'gone', 'Asset was removed', { retryable: false, details: { id: r.id, deletedAt: r.deletedAt, revision: r.revision } });
+      throw new AppError(410, 'gone', 'Asset was removed', {
+        retryable: false,
+        details: { id: r.object.sha256.slice(0, SHORT_ID_LEN), deletedAt: r.deletedAt, rev: r.revision },
+      });
     }
-    return { commit: snap.commit, asset: this.publicAsset(r, snap.commit, await this.mirrors(snap)) };
+    return this.compactAsset(r, { detail: true });
+  }
+
+  /** Accept sha256:<64hex>, bare 64-hex, or unique 8–64 hex prefix (canonical short id = 12). */
+  async resolveAssetRef(rawId: string): Promise<{ sha: string; record: AssetRecord; snap: Snapshot }> {
+    const m = /^(?:sha256:)?([0-9a-fA-F]{8,64})$/.exec(String(rawId || '').trim());
+    if (!m) throw new AppError(404, 'not_found', 'Unknown asset id');
+    return this.resolveByPrefix(m[1]!.toLowerCase());
   }
 
   /** Decide the 302 target *now* (fresh HEAD), so a tombstoned asset can never be redirected. */
   async contentTarget(rawId: string, sourceId?: string): Promise<{ url: string; sha256: string; commit: string }> {
     if (!this.config.contentEnabled) throw new AppError(503, 'content_disabled', 'Content serving is temporarily disabled');
-    const sha = parseAssetId(rawId);
-    const snap = await this.snapshot();
-    const r = await this.record(snap, sha);
-    if (!r) throw new AppError(404, 'not_found', 'Unknown asset id');
+    const { sha, record: r, snap } = await this.resolveAssetRef(rawId);
     if (r.status === 'tombstoned') throw new AppError(410, 'gone', 'Asset was removed', { retryable: false });
     const list = this.sources(snap.commit, r.object.path, await this.mirrors(snap));
     if (!list.length) throw new AppError(503, 'no_source', 'No content source configured');
     const pick = sourceId ? list.find((s) => s.id === sourceId) : list[0];
     if (!pick) throw new AppError(400, 'unknown_source', `source must be one of ${list.map((s) => s.id).join(',')}`);
-    return { url: pick.url, sha256: r.object.sha256, commit: snap.commit };
+    return { url: pick.url, sha256: sha, commit: snap.commit };
   }
 
   /**
@@ -250,10 +285,7 @@ export class AssetService {
 
   /** Live object bytes at the current HEAD, hash-verified (used by renders referencing an asset). */
   async objectBytes(rawId: string): Promise<{ bytes: Buffer; record: AssetRecord }> {
-    const sha = parseAssetId(rawId);
-    const snap = await this.snapshot();
-    const r = await this.record(snap, sha);
-    if (!r) throw new AppError(404, 'not_found', 'Unknown asset id');
+    const { sha, record: r, snap } = await this.resolveAssetRef(rawId);
     if (r.status === 'tombstoned') throw new AppError(410, 'gone', 'Asset was removed', { retryable: false });
     const bytes = await snap.read(r.object.path, { metadata: false });
     if (!bytes || createHash('sha256').update(bytes).digest('hex') !== sha) {
@@ -277,22 +309,39 @@ export class AssetService {
 
     const snap = await this.snapshot();
     const catalog = await snap.json<Catalog>(INDEX_PATHS.catalog);
-    const mirrors = await this.mirrors(snap);
-    if (!catalog) return { commit: snap.commit, total: 0, truncated: false, items: [], nextCursor: null };
-    const decorate = (d: DocSummary, score: number | undefined) => ({
-      ...d,
-      uploadedAtLocal: toManila(d.uploadedAt),
-      score,
-      contentUrl: shortContentPath(d.id.replace(/^sha256:/, ''), d.mime),
-      sources: this.sources(snap.commit, d.path, mirrors),
-    });
+    if (!catalog) return { n: 0, items: [] };
+    const decorate = (d: DocSummary) => {
+      const sha = d.id.replace(/^sha256:/, '');
+      const item: Record<string, unknown> = {
+        id: sha.slice(0, SHORT_ID_LEN),
+        url: shortContentPath(sha, d.mime),
+        title: d.title,
+        w: d.width,
+        h: d.height,
+        mime: d.mime,
+        bytes: d.bytes,
+        uploadedAt: d.uploadedAt,
+        rev: d.revision,
+      };
+      if (d.tags?.length) item.tags = d.tags.slice(0, 3);
+      if (d.categories?.length) item.cats = d.categories;
+      if (d.animated) item.anim = true;
+      return item;
+    };
     const cursorFor = (total: number) => (offset + limit < total ? Buffer.from(String(offset + limit)).toString('base64url') : null);
+    const pack = (total: number, truncated: boolean, items: Array<Record<string, unknown>>) => {
+      const out: Record<string, unknown> = { n: total, items };
+      const next = cursorFor(total);
+      if (next) out.next = next;
+      if (truncated) out.trunc = true;
+      return out;
+    };
 
     if (sort === 'relevance' || !p.q) {
       // A's reference implementation (lib/search.mjs), pinned to this commit; snapshot enforces the 512KiB read budget.
       const { value: r } = await withSyncRead(snap, (read) => referenceSearch(read, { q: p.q, category: p.category, tag: p.tag, limit, offset }));
-      const items = r.items.map(({ key: _k, score, ...d }) => decorate(d as DocSummary, p.q ? score : undefined));
-      return { commit: snap.commit, total: r.total, truncated: r.truncated, items, nextCursor: cursorFor(r.total) };
+      const items = r.items.map(({ key: _k, score: _s, ...d }) => decorate(d as DocSummary));
+      return pack(r.total, r.truncated, items);
     }
     // sort=uploaded with a keyword query: same candidate set and filters as A's search, ordered by upload time.
     const recent = (await snap.json<{ items: Array<[string, number]> }>(INDEX_PATHS.recent))?.items ?? [];
@@ -339,9 +388,9 @@ export class AssetService {
       if (!docShards.has(hh)) continue;
       const docs = await snap.json<{ docs: Record<string, DocSummary> }>(INDEX_PATHS.docs(hh));
       const d = docs?.docs[key];
-      if (d) items.push(decorate(d, score)); // never invent entries if the index is inconsistent
+      if (d) items.push(decorate(d)); // never invent entries if the index is inconsistent
     }
-    return { commit: snap.commit, total: candidates.length, truncated, items, nextCursor: cursorFor(candidates.length) };
+    return pack(candidates.length, truncated, items);
   }
 
   /** Public taxonomy (A config/taxonomy.json) with live counts from the catalog when available. */
@@ -522,7 +571,11 @@ export class AssetService {
   }
 
   private async loadForChange(snap: Snapshot, rawId: string, ifMatch: number | null): Promise<AssetRecord> {
-    const r = await this.record(snap, parseAssetId(rawId));
+    const m = /^(?:sha256:)?([0-9a-fA-F]{8,64})$/.exec(String(rawId || '').trim());
+    if (!m) throw new AppError(404, 'not_found', 'Unknown asset id');
+    const pfx = m[1]!.toLowerCase();
+    const sha = pfx.length === 64 ? pfx : (await this.resolveByPrefix(pfx)).sha;
+    const r = await this.record(snap, sha);
     if (!r) throw new AppError(404, 'not_found', 'Unknown asset id');
     if (r.status === 'tombstoned') throw new AppError(410, 'gone', 'Asset was removed', { retryable: false });
     if (ifMatch !== null && ifMatch !== r.revision) {
@@ -571,10 +624,14 @@ export class AssetService {
   async tombstone(principal: Principal, rawId: string, reasonRaw: unknown, ifMatch: number | null, idemKey: string | null) {
     const reason = parseReason(reasonRaw);
     return this.write(principal, 'asset.tombstone', idemKey, { id: rawId, ifMatch, reason }, async (snap, op) => {
-      const existing = await this.record(snap, parseAssetId(rawId));
+      const m = /^(?:sha256:)?([0-9a-fA-F]{8,64})$/.exec(String(rawId || '').trim());
+      if (!m) throw new AppError(404, 'not_found', 'Unknown asset id');
+      const pfx = m[1]!.toLowerCase();
+      const sha = pfx.length === 64 ? pfx : (await this.resolveByPrefix(pfx)).sha;
+      const existing = await this.record(snap, sha);
       if (!existing) throw new AppError(404, 'not_found', 'Unknown asset id');
       if (existing.status === 'tombstoned') return { kind: 'noop', status: 'unchanged', record: existing };
-      const before = await this.loadForChange(snap, rawId, ifMatch);
+      const before = await this.loadForChange(snap, sha, ifMatch);
       const ctx = await this.planCtx(snap);
       const { value: r, seen } = await withSyncRead(snap, (read) =>
         planTombstone(read, before.id, { ...op, reason, expectedRevision: ifMatch ?? undefined }, ctx),

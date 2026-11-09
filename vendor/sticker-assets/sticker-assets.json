@@ -1,0 +1,6 @@
+{
+  "format": "sticker-assets",
+  "schemaVersion": 1,
+  "indexFormat": 1,
+  "tokenizer": "zh-bigram-v1"
+}

@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "shard": "44",
+  "assets": [
+    {
+      "id": "sha256:44fe456a299e919b180145bf63b44bef0f003dfd801bfa496d3c3091f3b71d91",
+      "revision": 2,
+      "status": "tombstoned",
+      "object": {
+        "sha256": "44fe456a299e919b180145bf63b44bef0f003dfd801bfa496d3c3091f3b71d91",
+        "path": "objects/sha256/44/44fe456a299e919b180145bf63b44bef0f003dfd801bfa496d3c3091f3b71d91.png",
+        "mime": "image/png",
+        "bytes": 249,
+        "width": 36,
+        "height": 36,
+        "frames": 1,
+        "animated": false
+      },
+      "originalSha256": null,
+      "title": "已下架示例",
+      "categories": [
+        "angry"
+      ],
+      "tags": [
+        "生气"
+      ],
+      "aliases": [],
+      "language": "zh-CN",
+      "tone": "negative",
+      "safety": {
+        "rating": "general",
+        "offensive": false
+      },
+      "text": {
+        "ocr": null,
+        "ocrSource": null,
+        "ocrConfirmed": false
+      },
+      "uploadedAt": "2026-11-07T09:00:00Z",
+      "firstSeenAt": null,
+      "source": {
+        "kind": "self-created",
+        "adapter": null,
+        "url": null,
+        "itemId": null,
+        "publishedAt": null,
+        "confidence": "high"
+      },
+      "rights": {
+        "basis": "self-created",
+        "licenseId": "self-created-project",
+        "reviewedAt": "2026-11-09T00:00:00Z",
+        "publicUrl": null
+      },
+      "updatedAt": "2026-11-09T04:10:00Z",
+      "lastOperationId": "op_ddce4c03af6b395f943df7e625b83c51",
+      "archivedAt": null,
+      "deletedAt": "2026-11-09T04:10:00Z",
+      "tombstone": {
+        "reason": "quality"
+      }
+    }
+  ]
+}

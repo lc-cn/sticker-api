@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sticker-assets:v1:mirrors",
+  "title": "config/mirrors.json 镜像候选（管理员固定，客户端不可传任意proxy）",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "owner", "repo", "origin", "mirrors", "allowedHosts"],
+  "$defs": {
+    "template": { "type": "string", "pattern": "^https://[a-z0-9.-]+/.*\\{commit\\}.*\\{path\\}$" }
+  },
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "owner": { "type": ["string", "null"], "pattern": "^[A-Za-z0-9-]{1,39}$" },
+    "repo": { "type": ["string", "null"], "pattern": "^[A-Za-z0-9._-]{1,100}$" },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "template"],
+      "properties": { "id": { "const": "github-raw" }, "template": { "const": "https://raw.githubusercontent.com/{owner}/{repo}/{commit}/{path}" } }
+    },
+    "mirrors": {
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "template", "enabled", "verifiedAt", "note"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]{1,32}$" },
+          "template": { "$ref": "#/$defs/template" },
+          "enabled": { "type": "boolean" },
+          "verifiedAt": { "$ref": "urn:sticker-assets:v1:common#/$defs/nullableUtcTime" },
+          "note": { "type": "string", "maxLength": 300 }
+        },
+        "if": { "properties": { "enabled": { "const": true } } },
+        "then": { "properties": { "verifiedAt": { "$ref": "urn:sticker-assets:v1:common#/$defs/utcTime" } } }
+      }
+    },
+    "allowedHosts": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z0-9.-]+$" } }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "ofl-1-1",
+  "kind": "license",
+  "name": "SIL Open Font License 1.1",
+  "spdx": "OFL-1.1",
+  "url": "https://openfontlicense.org/open-font-license-official-text/",
+  "attribution": null,
+  "notice": "示例：模板引用的字体由 B 渲染器提供，具体字体文件与版本 hash 需在 B 中固定并附 NOTICE。",
+  "scope": "模板字体引用",
+  "reviewedAt": "2026-11-09T00:00:00Z"
+}

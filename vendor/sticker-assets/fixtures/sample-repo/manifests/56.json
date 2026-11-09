@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "shard": "56",
+  "assets": [
+    {
+      "id": "sha256:56028d566df5b4c80abfff7d64ab6f69ec48071437835bd9daaec0c67d82bbdf",
+      "revision": 1,
+      "status": "active",
+      "object": {
+        "sha256": "56028d566df5b4c80abfff7d64ab6f69ec48071437835bd9daaec0c67d82bbdf",
+        "path": "objects/sha256/56/56028d566df5b4c80abfff7d64ab6f69ec48071437835bd9daaec0c67d82bbdf.jpg",
+        "mime": "image/jpeg",
+        "bytes": 1849,
+        "width": 40,
+        "height": 40,
+        "frames": 1,
+        "animated": false
+      },
+      "originalSha256": null,
+      "title": "谢谢老板",
+      "categories": [
+        "thanks"
+      ],
+      "tags": [
+        "谢谢",
+        "老板"
+      ],
+      "aliases": [],
+      "language": "zh-CN",
+      "tone": "positive",
+      "safety": {
+        "rating": "general",
+        "offensive": false
+      },
+      "text": {
+        "ocr": null,
+        "ocrSource": null,
+        "ocrConfirmed": false
+      },
+      "uploadedAt": "2026-11-09T03:30:00Z",
+      "firstSeenAt": null,
+      "source": {
+        "kind": "self-created",
+        "adapter": null,
+        "url": null,
+        "itemId": null,
+        "publishedAt": null,
+        "confidence": "high"
+      },
+      "rights": {
+        "basis": "self-created",
+        "licenseId": "self-created-project",
+        "reviewedAt": "2026-11-09T00:00:00Z",
+        "publicUrl": null
+      },
+      "updatedAt": "2026-11-09T03:30:00Z",
+      "lastOperationId": "op_736ebe0e89a19beacf6ab8a9b38eee55",
+      "archivedAt": null,
+      "deletedAt": null,
+      "tombstone": null
+    }
+  ]
+}

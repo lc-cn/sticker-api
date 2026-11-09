@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "shard": "bd",
+  "assets": [
+    {
+      "id": "sha256:bda5ea3f997c08670eff49f503f16e27aa54a28543ae81a36b1a00200caf90c6",
+      "revision": 2,
+      "status": "archived",
+      "object": {
+        "sha256": "bda5ea3f997c08670eff49f503f16e27aa54a28543ae81a36b1a00200caf90c6",
+        "path": "objects/sha256/bd/bda5ea3f997c08670eff49f503f16e27aa54a28543ae81a36b1a00200caf90c6.png",
+        "mime": "image/png",
+        "bytes": 205,
+        "width": 32,
+        "height": 32,
+        "frames": 1,
+        "animated": false
+      },
+      "originalSha256": null,
+      "title": "好的收到",
+      "categories": [
+        "agree"
+      ],
+      "tags": [
+        "好的"
+      ],
+      "aliases": [],
+      "language": "zh-CN",
+      "tone": "neutral",
+      "safety": {
+        "rating": "general",
+        "offensive": false
+      },
+      "text": {
+        "ocr": null,
+        "ocrSource": null,
+        "ocrConfirmed": false
+      },
+      "uploadedAt": "2026-11-07T08:00:00Z",
+      "firstSeenAt": null,
+      "source": {
+        "kind": "self-created",
+        "adapter": null,
+        "url": null,
+        "itemId": null,
+        "publishedAt": null,
+        "confidence": "high"
+      },
+      "rights": {
+        "basis": "self-created",
+        "licenseId": "self-created-project",
+        "reviewedAt": "2026-11-09T00:00:00Z",
+        "publicUrl": null
+      },
+      "updatedAt": "2026-11-09T04:00:00Z",
+      "lastOperationId": "op_f2e8f198a646fe6f4c6ab65f1f6961b5",
+      "archivedAt": "2026-11-09T04:00:00Z",
+      "deletedAt": null,
+      "tombstone": null
+    }
+  ]
+}

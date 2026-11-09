@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "categories": [
+    {
+      "slug": "greeting",
+      "label": "打招呼/问候"
+    },
+    {
+      "slug": "thanks",
+      "label": "感谢"
+    },
+    {
+      "slug": "agree",
+      "label": "好的/赞同"
+    },
+    {
+      "slug": "refuse",
+      "label": "拒绝/不要"
+    },
+    {
+      "slug": "laugh",
+      "label": "笑/开心"
+    },
+    {
+      "slug": "sad",
+      "label": "哭/难过"
+    },
+    {
+      "slug": "angry",
+      "label": "生气"
+    },
+    {
+      "slug": "shock",
+      "label": "震惊"
+    },
+    {
+      "slug": "speechless",
+      "label": "无语/疑问"
+    },
+    {
+      "slug": "cute",
+      "label": "卖萌"
+    },
+    {
+      "slug": "sleepy",
+      "label": "困/晚安"
+    },
+    {
+      "slug": "food",
+      "label": "吃/饿"
+    },
+    {
+      "slug": "work",
+      "label": "上班/打工"
+    },
+    {
+      "slug": "celebrate",
+      "label": "庆祝/祝福"
+    },
+    {
+      "slug": "animal",
+      "label": "动物"
+    },
+    {
+      "slug": "other",
+      "label": "其他"
+    }
+  ]
+}

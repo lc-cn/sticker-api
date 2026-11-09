@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "id": "caption-bar",
+  "version": 1,
+  "title": "底部字幕条",
+  "status": "active",
+  "renderer": "light-v1",
+  "tags": [
+    "字幕",
+    "配字"
+  ],
+  "inputs": {
+    "texts": {
+      "min": 1,
+      "max": 1,
+      "maxLength": 40
+    },
+    "images": {
+      "min": 0,
+      "max": 1
+    }
+  },
+  "params": [
+    {
+      "name": "color",
+      "type": "enum",
+      "default": "black",
+      "enum": [
+        "black",
+        "red"
+      ]
+    }
+  ],
+  "output": {
+    "mime": "image/png",
+    "animated": false,
+    "maxBytes": 2097152
+  },
+  "canvas": {
+    "width": 240,
+    "height": 240,
+    "background": "#ffffff"
+  },
+  "layers": [
+    {
+      "type": "image",
+      "file": "base.png",
+      "box": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 240
+      }
+    },
+    {
+      "type": "slot-image",
+      "slot": 0,
+      "box": {
+        "x": 6,
+        "y": 6,
+        "w": 228,
+        "h": 174
+      },
+      "fit": "contain"
+    },
+    {
+      "type": "text",
+      "slot": 0,
+      "box": {
+        "x": 12,
+        "y": 184,
+        "w": 216,
+        "h": 46
+      },
+      "font": "default-sans",
+      "fontSize": 28,
+      "minFontSize": 14,
+      "color": "#222222",
+      "stroke": {
+        "color": "#ffffff",
+        "width": 2
+      },
+      "align": "center",
+      "valign": "middle",
+      "wrap": true
+    }
+  ],
+  "files": [
+    {
+      "path": "base.png",
+      "sha256": "4120e5701fd22b1fceeeac25961e39466e16f6e21d8c3246d8ce41915cf9f5cf",
+      "bytes": 681,
+      "mime": "image/png",
+      "role": "base"
+    }
+  ],
+  "fonts": [
+    {
+      "id": "default-sans",
+      "licenseId": "ofl-1-1",
+      "providedBy": "renderer"
+    }
+  ],
+  "licenseIds": [
+    "self-created-project"
+  ],
+  "notice": "底图为项目自绘；字体由渲染器提供（见 ofl-1-1）。"
+}

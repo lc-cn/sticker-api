@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "self-created-project",
+  "kind": "self-created",
+  "name": "项目维护者自制",
+  "spdx": null,
+  "url": null,
+  "attribution": null,
+  "notice": "由本项目脚本自绘的测试/示例图，可随本仓库公开再分发。",
+  "scope": "fixtures 与示例模板",
+  "reviewedAt": "2026-11-09T00:00:00Z"
+}

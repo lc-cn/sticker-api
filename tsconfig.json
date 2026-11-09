@@ -11,8 +11,10 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": false,
     "sourceMap": true,
+    "allowJs": true,
+    "checkJs": false,
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts"],
+  "include": ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts", "vendor/sticker-assets/**/*.mjs"],
   "exclude": ["node_modules", "dist"]
 }

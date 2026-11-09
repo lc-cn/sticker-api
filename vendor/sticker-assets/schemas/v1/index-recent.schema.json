@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sticker-assets:v1:index-recent",
+  "title": "indexes/recent.json：active 资产 [docKey, uploadedAt 的 Unix 秒]，按时间降序、key 升序",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "indexFormat", "items"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "indexFormat": { "const": 1 },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "prefixItems": [ { "type": "string", "pattern": "^[0-9a-f]{12}$" }, { "type": "integer", "minimum": 0 } ]
+      }
+    }
+  }
+}

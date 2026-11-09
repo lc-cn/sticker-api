@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "maxAssets": 3000,
+  "maxManagedBytes": 524288000,
+  "warnManagedBytes": 262144000,
+  "maxObjectBytes": 2097152,
+  "maxLongEdge": 2048,
+  "maxCanvasPixels": 4000000,
+  "maxFrames": 60,
+  "maxTotalFramePixels": 24000000,
+  "dailyMaxAssets": 100,
+  "dailyMaxBytes": 41943040,
+  "dailyTimeZone": "Asia/Manila",
+  "maxCatalogBytes": 262144,
+  "maxShardBytes": 131072,
+  "maxTags": 20,
+  "maxTagLength": 24,
+  "maxTitleLength": 80,
+  "maxCategories": 5,
+  "termShardCount": 128
+}

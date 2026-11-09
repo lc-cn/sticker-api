@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sticker-assets:v1:index-catalog",
+  "title": "indexes/catalog.json（派生、确定性、无时间戳）",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "indexFormat", "tokenizer", "termShardCount", "termShardHash", "docKeyLength", "docShardPrefixLength", "counts", "bytes", "categories", "termShards", "docShards", "templates", "synonymsSha256", "limits"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "indexFormat": { "const": 1 },
+    "tokenizer": { "const": "zh-bigram-v1" },
+    "termShardCount": { "type": "integer", "minimum": 1, "maximum": 256 },
+    "termShardHash": { "const": "fnv1a32" },
+    "docKeyLength": { "const": 12 },
+    "docShardPrefixLength": { "const": 3 },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["active", "archived", "tombstoned"],
+      "properties": { "active": { "type": "integer", "minimum": 0 }, "archived": { "type": "integer", "minimum": 0 }, "tombstoned": { "type": "integer", "minimum": 0 } }
+    },
+    "bytes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["objects", "templates"],
+      "properties": { "objects": { "type": "integer", "minimum": 0 }, "templates": { "type": "integer", "minimum": 0 } }
+    },
+    "categories": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+    "termShards": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[0-9a-f]{2}$" } },
+    "docShards": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[0-9a-f]{3}$" } },
+    "templates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "version", "path", "title", "status"],
+        "properties": {
+          "id": { "$ref": "urn:sticker-assets:v1:common#/$defs/templateId" },
+          "version": { "type": "integer", "minimum": 1 },
+          "path": { "type": "string", "pattern": "^templates/[a-z0-9-]+/[0-9]+/template\\.json$" },
+          "title": { "type": "string" },
+          "status": { "type": "string", "enum": ["active", "disabled"] }
+        }
+      }
+    },
+    "synonymsSha256": { "$ref": "urn:sticker-assets:v1:common#/$defs/sha256" },
+    "limits": { "type": "object" }
+  }
+}

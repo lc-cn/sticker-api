@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "operationId": "op_ddce4c03af6b395f943df7e625b83c51",
+  "type": "asset.tombstone",
+  "occurredAt": "2026-11-09T04:10:00Z",
+  "actorKind": "admin",
+  "idempotency": null,
+  "requestFingerprint": null,
+  "assets": [
+    {
+      "id": "sha256:44fe456a299e919b180145bf63b44bef0f003dfd801bfa496d3c3091f3b71d91",
+      "revision": 2
+    }
+  ],
+  "summary": {
+    "removed": 1
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "shard": "2e",
+  "assets": [
+    {
+      "id": "sha256:2e00ffb6d7f6d853b38f1a56169dc2d1475215d372162bcfbda4fa28dc21b2d1",
+      "revision": 2,
+      "status": "active",
+      "object": {
+        "sha256": "2e00ffb6d7f6d853b38f1a56169dc2d1475215d372162bcfbda4fa28dc21b2d1",
+        "path": "objects/sha256/2e/2e00ffb6d7f6d853b38f1a56169dc2d1475215d372162bcfbda4fa28dc21b2d1.png",
+        "mime": "image/png",
+        "bytes": 381,
+        "width": 64,
+        "height": 64,
+        "frames": 1,
+        "animated": false
+      },
+      "originalSha256": null,
+      "title": "开心大笑",
+      "categories": [
+        "laugh"
+      ],
+      "tags": [
+        "哈哈",
+        "开心",
+        "大笑",
+        "笑死"
+      ],
+      "aliases": [
+        "xswl"
+      ],
+      "language": "zh-CN",
+      "tone": "positive",
+      "safety": {
+        "rating": "general",
+        "offensive": false
+      },
+      "text": {
+        "ocr": null,
+        "ocrSource": null,
+        "ocrConfirmed": false
+      },
+      "uploadedAt": "2026-11-09T02:00:00Z",
+      "firstSeenAt": null,
+      "source": {
+        "kind": "self-created",
+        "adapter": null,
+        "url": null,
+        "itemId": null,
+        "publishedAt": null,
+        "confidence": "high"
+      },
+      "rights": {
+        "basis": "self-created",
+        "licenseId": "self-created-project",
+        "reviewedAt": "2026-11-09T00:00:00Z",
+        "publicUrl": null
+      },
+      "updatedAt": "2026-11-09T04:20:00Z",
+      "lastOperationId": "op_f8d08f4faa17e4b80ede860c80d5e689",
+      "archivedAt": null,
+      "deletedAt": null,
+      "tombstone": null
+    }
+  ]
+}

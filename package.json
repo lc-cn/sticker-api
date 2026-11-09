@@ -3,19 +3,22 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Independent sticker pack API for Xiaozhi: upload, dedupe, search, serve originals",
+  "description": "小智表情服务 B：单 Vercel、无状态 API；A 仓库(sticker-assets)为唯一权威",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
+    "build": "rm -rf dist && tsc -p tsconfig.json && node scripts/copy-vendor-data.mjs",
+    "start": "node dist/src/server.js",
     "test": "pnpm build && node --test --test-concurrency=1 dist/tests/*.test.js",
-    "smoke": "pnpm build && node dist/scripts/smoke.js"
+    "smoke": "pnpm build && node dist/scripts/smoke.js",
+    "vendor:a": "node scripts/vendor-assets-contract.mjs ../sticker-assets",
+    "token:new": "node scripts/new-machine-token.mjs"
   },
   "dependencies": {
-    "@fastify/multipart": "^9.2.1",
+    "@fastify/busboy": "3.2.5",
+    "@resvg/resvg-wasm": "2.6.2",
     "fastify": "^5.6.1"
   },
   "devDependencies": {

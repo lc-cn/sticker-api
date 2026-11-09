@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sticker-assets:v1:license",
+  "title": "公开许可/授权说明 licenses/<licenseId>.json（私密证据不入A）",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "kind", "name", "spdx", "url", "attribution", "notice", "scope", "reviewedAt"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "$ref": "urn:sticker-assets:v1:common#/$defs/licenseId" },
+    "kind": { "type": "string", "enum": ["self-created", "license", "creator-permission"] },
+    "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "spdx": { "type": ["string", "null"], "pattern": "^[A-Za-z0-9.+-]{2,64}$" },
+    "url": { "$ref": "urn:sticker-assets:v1:common#/$defs/nullableHttpsUrl" },
+    "attribution": { "type": ["string", "null"], "maxLength": 200 },
+    "notice": { "type": "string", "maxLength": 2000 },
+    "scope": { "type": "string", "maxLength": 500 },
+    "reviewedAt": { "$ref": "urn:sticker-assets:v1:common#/$defs/utcTime" }
+  },
+  "allOf": [
+    { "if": { "properties": { "kind": { "const": "license" } } }, "then": { "properties": { "spdx": { "type": "string" }, "url": { "type": "string" } } } },
+    { "if": { "properties": { "kind": { "const": "creator-permission" } } }, "then": { "properties": { "url": { "type": "string" } } } }
+  ]
+}

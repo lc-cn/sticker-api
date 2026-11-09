@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "operationId": "op_0765ba248f7928e0a37d2f026ba83e71",
+  "type": "asset.create",
+  "occurredAt": "2026-11-07T09:00:00Z",
+  "actorKind": "admin",
+  "idempotency": null,
+  "requestFingerprint": null,
+  "assets": [
+    {
+      "id": "sha256:44fe456a299e919b180145bf63b44bef0f003dfd801bfa496d3c3091f3b71d91",
+      "revision": 1
+    }
+  ],
+  "summary": {
+    "added": 1,
+    "addedBytes": 249
+  }
+}

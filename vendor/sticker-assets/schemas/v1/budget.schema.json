@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sticker-assets:v1:budget",
+  "title": "每日成功发布预算 budgets/daily/<YYYY-MM-DD>.json（Asia/Manila 自然日）",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "date", "timeZone", "acceptedCount", "acceptedBytes"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "timeZone": { "const": "Asia/Manila" },
+    "acceptedCount": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "acceptedBytes": { "type": "integer", "minimum": 0, "maximum": 41943040 }
+  }
+}

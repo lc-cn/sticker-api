@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "shard": "82",
+  "assets": [
+    {
+      "id": "sha256:82f2b10b9664acc8a43f01d02b442bd672fd0f6a468fdc410e8126413a35f5c3",
+      "revision": 1,
+      "status": "active",
+      "object": {
+        "sha256": "82f2b10b9664acc8a43f01d02b442bd672fd0f6a468fdc410e8126413a35f5c3",
+        "path": "objects/sha256/82/82f2b10b9664acc8a43f01d02b442bd672fd0f6a468fdc410e8126413a35f5c3.png",
+        "mime": "image/png",
+        "bytes": 297,
+        "width": 48,
+        "height": 48,
+        "frames": 1,
+        "animated": false
+      },
+      "originalSha256": null,
+      "title": "委屈哭哭",
+      "categories": [
+        "sad"
+      ],
+      "tags": [
+        "哭",
+        "难过",
+        "委屈"
+      ],
+      "aliases": [],
+      "language": "zh-CN",
+      "tone": "negative",
+      "safety": {
+        "rating": "general",
+        "offensive": false
+      },
+      "text": {
+        "ocr": "我太难了",
+        "ocrSource": "manual",
+        "ocrConfirmed": true
+      },
+      "uploadedAt": "2026-11-08T10:00:00Z",
+      "firstSeenAt": null,
+      "source": {
+        "kind": "self-created",
+        "adapter": null,
+        "url": null,
+        "itemId": null,
+        "publishedAt": null,
+        "confidence": "high"
+      },
+      "rights": {
+        "basis": "self-created",
+        "licenseId": "self-created-project",
+        "reviewedAt": "2026-11-09T00:00:00Z",
+        "publicUrl": null
+      },
+      "updatedAt": "2026-11-08T10:00:00Z",
+      "lastOperationId": "op_51972b59cdaec76a1a76deb31a2f7c8a",
+      "archivedAt": null,
+      "deletedAt": null,
+      "tombstone": null
+    }
+  ]
+}

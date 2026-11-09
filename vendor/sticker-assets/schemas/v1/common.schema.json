@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sticker-assets:v1:common",
+  "title": "共享定义",
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "assetId": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "operationId": { "type": "string", "pattern": "^op_[0-9a-f]{32}$" },
+    "utcTime": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,3})?Z$" },
+    "nullableUtcTime": { "anyOf": [ { "$ref": "#/$defs/utcTime" }, { "type": "null" } ] },
+    "httpsUrl": { "type": "string", "maxLength": 512, "pattern": "^https://[^\\s]+$" },
+    "nullableHttpsUrl": { "anyOf": [ { "$ref": "#/$defs/httpsUrl" }, { "type": "null" } ] },
+    "category": {
+      "type": "string",
+      "enum": ["greeting", "thanks", "agree", "refuse", "laugh", "sad", "angry", "shock", "speechless", "cute", "sleepy", "food", "work", "celebrate", "animal", "other"]
+    },
+    "tag": { "type": "string", "minLength": 1, "maxLength": 24, "pattern": "^[^\\u0000-\\u001f]+$" },
+    "mime": { "type": "string", "enum": ["image/png", "image/jpeg", "image/gif"] },
+    "licenseId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,63}$" },
+    "templateId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,47}$" },
+    "hmacRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["keyId", "hmac"],
+      "properties": {
+        "keyId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,31}$" },
+        "hmac": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

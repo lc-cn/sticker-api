@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "operationId": "op_f8d08f4faa17e4b80ede860c80d5e689",
+  "type": "asset.update",
+  "occurredAt": "2026-11-09T04:20:00Z",
+  "actorKind": "machine",
+  "idempotency": null,
+  "requestFingerprint": null,
+  "assets": [
+    {
+      "id": "sha256:2e00ffb6d7f6d853b38f1a56169dc2d1475215d372162bcfbda4fa28dc21b2d1",
+      "revision": 2
+    }
+  ],
+  "summary": {
+    "updated": 1
+  }
+}

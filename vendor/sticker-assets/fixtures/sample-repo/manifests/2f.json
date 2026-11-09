@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "shard": "2f",
+  "assets": [
+    {
+      "id": "sha256:2fe38bacbab26bfa63ee645b50fca8e0c6e497ea537c3d5fe50f8950105ac755",
+      "revision": 1,
+      "status": "active",
+      "object": {
+        "sha256": "2fe38bacbab26bfa63ee645b50fca8e0c6e497ea537c3d5fe50f8950105ac755",
+        "path": "objects/sha256/2f/2fe38bacbab26bfa63ee645b50fca8e0c6e497ea537c3d5fe50f8950105ac755.gif",
+        "mime": "image/gif",
+        "bytes": 398,
+        "width": 32,
+        "height": 32,
+        "frames": 3,
+        "animated": true
+      },
+      "originalSha256": null,
+      "title": "眨眼晚安",
+      "categories": [
+        "cute",
+        "sleepy"
+      ],
+      "tags": [
+        "眨眼",
+        "晚安"
+      ],
+      "aliases": [],
+      "language": "zh-CN",
+      "tone": "positive",
+      "safety": {
+        "rating": "general",
+        "offensive": false
+      },
+      "text": {
+        "ocr": null,
+        "ocrSource": null,
+        "ocrConfirmed": false
+      },
+      "uploadedAt": "2026-11-09T03:00:00Z",
+      "firstSeenAt": null,
+      "source": {
+        "kind": "self-created",
+        "adapter": null,
+        "url": null,
+        "itemId": null,
+        "publishedAt": null,
+        "confidence": "high"
+      },
+      "rights": {
+        "basis": "self-created",
+        "licenseId": "self-created-project",
+        "reviewedAt": "2026-11-09T00:00:00Z",
+        "publicUrl": null
+      },
+      "updatedAt": "2026-11-09T03:00:00Z",
+      "lastOperationId": "op_b1dce4dda83a76380306172c88da8c36",
+      "archivedAt": null,
+      "deletedAt": null,
+      "tombstone": null
+    }
+  ]
+}

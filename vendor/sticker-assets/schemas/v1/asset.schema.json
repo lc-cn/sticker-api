@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sticker-assets:v1:asset",
+  "title": "表情资产记录",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "revision", "status", "object", "originalSha256", "title", "categories", "tags", "aliases", "language", "tone", "safety", "text", "uploadedAt", "firstSeenAt", "source", "rights", "updatedAt", "lastOperationId", "archivedAt", "deletedAt", "tombstone"],
+  "properties": {
+    "id": { "$ref": "urn:sticker-assets:v1:common#/$defs/assetId" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "status": { "type": "string", "enum": ["active", "archived", "tombstoned"] },
+    "object": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "path", "mime", "bytes", "width", "height", "frames", "animated"],
+      "properties": {
+        "sha256": { "$ref": "urn:sticker-assets:v1:common#/$defs/sha256" },
+        "path": { "type": "string", "pattern": "^objects/sha256/[0-9a-f]{2}/[0-9a-f]{64}\\.(png|jpg|gif)$" },
+        "mime": { "$ref": "urn:sticker-assets:v1:common#/$defs/mime" },
+        "bytes": { "type": "integer", "minimum": 1, "maximum": 2097152 },
+        "width": { "type": "integer", "minimum": 1, "maximum": 2048 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 2048 },
+        "frames": { "type": "integer", "minimum": 1, "maximum": 60 },
+        "animated": { "type": "boolean" }
+      }
+    },
+    "originalSha256": { "anyOf": [ { "$ref": "urn:sticker-assets:v1:common#/$defs/sha256" }, { "type": "null" } ] },
+    "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "categories": { "type": "array", "minItems": 1, "maxItems": 5, "uniqueItems": true, "items": { "$ref": "urn:sticker-assets:v1:common#/$defs/category" } },
+    "tags": { "type": "array", "maxItems": 20, "uniqueItems": true, "items": { "$ref": "urn:sticker-assets:v1:common#/$defs/tag" } },
+    "aliases": { "type": "array", "maxItems": 20, "uniqueItems": true, "items": { "$ref": "urn:sticker-assets:v1:common#/$defs/tag" } },
+    "language": { "type": "string", "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$" },
+    "tone": { "type": "string", "enum": ["positive", "neutral", "negative", "sarcastic"] },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rating", "offensive"],
+      "properties": {
+        "rating": { "type": "string", "enum": ["general", "mild", "sensitive"] },
+        "offensive": { "type": "boolean" }
+      }
+    },
+    "text": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ocr", "ocrSource", "ocrConfirmed"],
+      "properties": {
+        "ocr": { "type": ["string", "null"], "maxLength": 200 },
+        "ocrSource": { "type": ["string", "null"], "enum": ["client", "manual", null] },
+        "ocrConfirmed": { "type": "boolean" }
+      }
+    },
+    "uploadedAt": { "$ref": "urn:sticker-assets:v1:common#/$defs/utcTime" },
+    "firstSeenAt": { "$ref": "urn:sticker-assets:v1:common#/$defs/nullableUtcTime" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "adapter", "url", "itemId", "publishedAt", "confidence"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["self-created", "manual-collection", "approved-list", "adapter", "import"] },
+        "adapter": { "type": ["string", "null"], "pattern": "^[a-z0-9][a-z0-9-]{1,31}$" },
+        "url": { "$ref": "urn:sticker-assets:v1:common#/$defs/nullableHttpsUrl" },
+        "itemId": { "type": ["string", "null"], "maxLength": 128 },
+        "publishedAt": { "$ref": "urn:sticker-assets:v1:common#/$defs/nullableUtcTime" },
+        "confidence": { "type": "string", "enum": ["none", "low", "medium", "high"] }
+      }
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["basis", "licenseId", "reviewedAt", "publicUrl"],
+      "properties": {
+        "basis": { "type": "string", "enum": ["self-created", "license", "creator-permission", "pending"] },
+        "licenseId": { "$ref": "urn:sticker-assets:v1:common#/$defs/licenseId" },
+        "reviewedAt": { "$ref": "urn:sticker-assets:v1:common#/$defs/nullableUtcTime" },
+        "publicUrl": { "$ref": "urn:sticker-assets:v1:common#/$defs/nullableHttpsUrl" }
+      }
+    },
+    "updatedAt": { "$ref": "urn:sticker-assets:v1:common#/$defs/utcTime" },
+    "lastOperationId": { "anyOf": [ { "$ref": "urn:sticker-assets:v1:common#/$defs/operationId" }, { "type": "null" } ] },
+    "archivedAt": { "$ref": "urn:sticker-assets:v1:common#/$defs/nullableUtcTime" },
+    "deletedAt": { "$ref": "urn:sticker-assets:v1:common#/$defs/nullableUtcTime" },
+    "tombstone": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reason"],
+          "properties": { "reason": { "type": "string", "enum": ["rights", "privacy", "quality", "duplicate", "policy", "other"] } }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "tombstoned" } } },
+      "then": { "properties": { "deletedAt": { "$ref": "urn:sticker-assets:v1:common#/$defs/utcTime" }, "tombstone": { "type": "object" } } },
+      "else": { "properties": { "deletedAt": { "type": "null" }, "tombstone": { "type": "null" } } }
+    },
+    {
+      "if": { "properties": { "status": { "const": "archived" } } },
+      "then": { "properties": { "archivedAt": { "$ref": "urn:sticker-assets:v1:common#/$defs/utcTime" } } }
+    }
+  ]
+}

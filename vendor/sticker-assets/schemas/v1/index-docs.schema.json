@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sticker-assets:v1:index-docs",
+  "title": "indexes/docs/<hhh>.json 展示摘要分片（sha256 前3位，仅 active）",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "indexFormat", "shard", "docs"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "indexFormat": { "const": 1 },
+    "shard": { "type": "string", "pattern": "^[0-9a-f]{3}$" },
+    "docs": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^[0-9a-f]{12}$" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "path", "mime", "bytes", "width", "height", "frames", "animated", "title", "categories", "tags", "tone", "safety", "uploadedAt", "publishedAt", "revision"],
+        "properties": {
+          "id": { "$ref": "urn:sticker-assets:v1:common#/$defs/assetId" },
+          "path": { "type": "string" },
+          "mime": { "$ref": "urn:sticker-assets:v1:common#/$defs/mime" },
+          "bytes": { "type": "integer" },
+          "width": { "type": "integer" },
+          "height": { "type": "integer" },
+          "frames": { "type": "integer" },
+          "animated": { "type": "boolean" },
+          "title": { "type": "string" },
+          "categories": { "type": "array", "items": { "$ref": "urn:sticker-assets:v1:common#/$defs/category" } },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "tone": { "type": "string" },
+          "safety": { "type": "object" },
+          "uploadedAt": { "$ref": "urn:sticker-assets:v1:common#/$defs/utcTime" },
+          "publishedAt": { "$ref": "urn:sticker-assets:v1:common#/$defs/nullableUtcTime" },
+          "revision": { "type": "integer", "minimum": 1 }
+        }
+      }
+    }
+  }
+}

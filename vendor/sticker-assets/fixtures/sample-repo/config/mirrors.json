@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "owner": "example-owner",
+  "repo": "sticker-assets",
+  "origin": {
+    "id": "github-raw",
+    "template": "https://raw.githubusercontent.com/{owner}/{repo}/{commit}/{path}"
+  },
+  "mirrors": [
+    {
+      "id": "gh-proxy",
+      "template": "https://gh-proxy.com/https://raw.githubusercontent.com/{owner}/{repo}/{commit}/{path}",
+      "enabled": false,
+      "verifiedAt": null,
+      "note": "社区免费代理，无SLA；图片bytes/header/缓存/速率/大陆可达性未验收，验收通过前不得启用"
+    },
+    {
+      "id": "ghfast",
+      "template": "https://ghfast.top/https://raw.githubusercontent.com/{owner}/{repo}/{commit}/{path}",
+      "enabled": false,
+      "verifiedAt": null,
+      "note": "社区免费代理，存在被封锁/换域风险；未验收，不得启用"
+    }
+  ],
+  "allowedHosts": [
+    "raw.githubusercontent.com",
+    "gh-proxy.com",
+    "ghfast.top"
+  ]
+}

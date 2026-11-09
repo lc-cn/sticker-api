@@ -1,0 +1,22 @@
+vendor/sticker-assets/VERSION.json
+  h_b64ebe5d3c7815 3,5,31,34,36
+vendor/sticker-assets/config/collect-sources.json
+  h_b64ebe5d3c7815 1-25
+vendor/sticker-assets/config/mirrors.json
+  h_b64ebe5d3c7815 3-4,10-23,27-29,34-36,41-42
+vendor/sticker-assets/schemas.mjs
+  h_b64ebe5d3c7815 2
+vendor/sticker-assets/schemas/v1/template.schema.json
+  h_b64ebe5d3c7815 7-24,29-34,36-55,58-65,68-100,104-107,112-116,118-132,138-141,143-152,163-167,169-207,214-218,220-234,240-244,246-265,277-292,297-302,304-321,327-339,341-368,371-373,377-390,394-412,424-430,432-452,462-466,468-480,484-536
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "82ab8c0578c8796a3f139d5927223dd17211dfd1",
+  "prompts": {},
+  "humans": {
+    "h_b64ebe5d3c7815": {
+      "author": "Class Liu <chunlang.liu@rdc-west.com>"
+    }
+  }
+}

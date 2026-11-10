@@ -61,7 +61,9 @@ export class Snapshot {
       }
       buf = await p;
       this.inflight.delete(key);
-      if (opts.metadata !== false) this.cache?.set(key, buf);
+      // Cache all immutable (commit, path) reads, including template binaries
+      // (metadata:false only skips the per-request metadata budget, not the LRU).
+      this.cache?.set(key, buf);
     }
     if (opts.metadata !== false && buf) {
       this.readBytes += buf.length;

@@ -268,6 +268,6 @@ export async function registerApiRoutes(
     const version = input.version === undefined ? undefined : Number(input.version);
     if (version !== undefined && !(Number.isInteger(version) && version >= 1)) throw new AppError(400, 'invalid_request', 'version must be a positive integer');
     const out = await renders.render(principal, { template: input.template, version, texts: texts as string[], params: params as Record<string, unknown>, images, imageUrls, assetIds: assetIds as string[] });
-    return reply.header('content-type', 'image/png').header('cache-control', 'no-store').header('x-template', out.template).header('x-content-type-options', 'nosniff').send(out.png);
+    return reply.header('content-type', out.mime).header('cache-control', 'no-store').header('x-template', out.template).header('x-content-type-options', 'nosniff').send(out.bytes);
   });
 }

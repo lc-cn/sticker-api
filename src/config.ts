@@ -276,7 +276,7 @@ export function loadConfig(env: Env = process.env, opts: { allowHttpLoopback?: b
     contentEnabled: bool(env, 'CONTENT_ENABLED', true),
     publishMaxAttempts: int(env, 'PUBLISH_MAX_ATTEMPTS', 4, 1, 8),
     renderFonts: str(env, 'RENDER_FONTS'),
-    renderTimeoutMs: int(env, 'RENDER_TIMEOUT_MS', 10000, 500, 10000),
+    renderTimeoutMs: int(env, 'RENDER_TIMEOUT_MS', 10000, 500, 20000),
     renderPerMinute: int(env, 'RENDER_PER_MINUTE', 30, 1, 600),
     publicRendersEnabled: bool(env, 'PUBLIC_RENDERS_ENABLED', false),
     publicRenderPerMinute: int(env, 'PUBLIC_RENDER_PER_MINUTE', 6, 1, 120),

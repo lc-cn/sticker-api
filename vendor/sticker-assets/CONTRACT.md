@@ -188,3 +188,4 @@ A 内 workflow：`validate.yml`（push/PR，只读）、`rebuild-index.yml`（�
 - 2026-11-09 v1 草案（A 侧 executor）。
 - 2026-11-09 v1.1：容量模拟发现 64 terms 分片 + 2位 docs 分片在 3000 条、每页 50 时最坏查询读入 586KB > 512KiB；改为 termShardCount=128、docs 按 sha256 前3位分片，catalog 新增 `docShardPrefixLength`。
 - 2026-11-09 v1：recent.json 改为 `items:[[key, unixSec]]`；新增 §6.1 lib 模块说明（commit-plan/search/strip）与 §6.2 fixture；本地测试 35 项通过。
+- 2026-11-10 v1.2：light-v1 模板声明式扩展（向后兼容）：可选 `animation`（最多 24 帧 GIF）；`canvas.fit` 按槽位图动态定画布；图层支持 `image-sequence`、`slot-image.quad` 透视、`keyframes`、`flip`、`when`（绑定 params）、`xFrom`/`yFrom`/`fill`；`files` 最多 48、`layers` 最多 32，role 增加 `frame`；box 原点允许为负（渲染时裁切）。现有 78 个固定画布 PNG 模板无需改动。

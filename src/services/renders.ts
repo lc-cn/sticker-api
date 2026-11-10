@@ -5,7 +5,7 @@ import { principalScope, type Principal } from '../auth/principal.js';
 import { validateImage, DEFAULT_IMAGE_LIMITS, type ValidatedImage } from '../domain/image.js';
 import { registry, type Catalog } from '../repo/contract.js';
 import type { Snapshot } from '../repo/snapshot.js';
-import { composeSvg, type LightTemplate, type Renderer } from '../render/renderer.js';
+import { type LightTemplate, type Renderer } from '../render/renderer.js';
 import type { AssetService } from './assets.js';
 import { SlidingLimiter } from '../http/rate-limit.js';
 import { fetchRemoteImage } from '../http/fetch-image.js';
@@ -35,6 +35,14 @@ export type RenderInput = {
   assetIds: string[];
 };
 
+function previewFile(t: LightTemplate): string | null {
+  for (const l of t.layers) {
+    if (l.type === 'image' && l.file) return l.file;
+    if (l.type === 'image-sequence' && l.files[0]) return l.files[0];
+  }
+  return t.files[0]?.path ?? null;
+}
+
 export class RenderService {
   private hits = new Map<string, number[]>();
   private readonly anon: SlidingLimiter;
@@ -63,19 +71,20 @@ export class RenderService {
     }
     const dir = entry.path.replace(/template\.json$/, '');
     const files = new Map<string, Buffer>();
-    for (const f of t.files) {
+    const loaded = await Promise.all(t.files.map(async (f) => {
       const b = await snap.read(dir + f.path, { metadata: false });
       if (!b || b.length !== f.bytes || createHash('sha256').update(b).digest('hex') !== f.sha256) {
         throw new AppError(503, 'template_asset_unverifiable', `Template asset ${f.path} missing or hash mismatch`);
       }
-      files.set(f.path, b);
-    }
+      return [f.path, b] as const;
+    }));
+    for (const [path, b] of loaded) files.set(path, b);
     return { t, files };
   }
 
   private renderable(t: LightTemplate): { ok: boolean; reason: string | null } {
     if (t.renderer !== 'light-v1') return { ok: false, reason: 'unknown renderer' };
-    if (t.output.mime !== 'image/png' || t.output.animated) return { ok: false, reason: 'animated/GIF output not supported in v1' };
+    if (t.output.mime !== 'image/png' && t.output.mime !== 'image/gif') return { ok: false, reason: 'unsupported output mime' };
     const missing = [...new Set(t.layers.filter((l) => l.type === 'text').map((l) => (l as { font: string }).font))].filter((f) => !this.renderer.hasFont(f));
     if (missing.length) return { ok: false, reason: `font not provisioned: ${missing.join(',')}` };
     return { ok: true, reason: null };
@@ -115,11 +124,11 @@ export class RenderService {
     if (!entry) throw new AppError(404, 'template_not_found', 'Unknown or disabled template');
     const t = await snap.json<LightTemplate>(entry.path);
     if (!t) throw new AppError(404, 'template_not_found', 'Unknown or disabled template');
-    const base = t.layers.find((l) => l.type === 'image' && 'file' in l && typeof (l as { file?: unknown }).file === 'string') as { file: string } | undefined;
-    if (!base) throw new AppError(404, 'template_not_found', 'Template has no preview image');
+    const file = previewFile(t);
+    if (!file) throw new AppError(404, 'template_not_found', 'Template has no preview image');
     const dir = entry.path.replace(/template\.json$/, '');
     const mirrors = await this.assets.mirrors(snap);
-    const list = this.assets.sources(snap.commit, dir + base.file, mirrors);
+    const list = this.assets.sources(snap.commit, dir + file, mirrors);
     if (!list.length) throw new AppError(503, 'no_source', 'No content source configured');
     return { url: list[0]!.url };
   }
@@ -142,7 +151,7 @@ export class RenderService {
     this.hits.set(key, arr);
   }
 
-  async render(principal: RenderCaller, input: RenderInput): Promise<{ png: Buffer; template: string }> {
+  async render(principal: RenderCaller, input: RenderInput): Promise<{ bytes: Buffer; mime: 'image/png' | 'image/gif'; template: string }> {
     if (!this.config.rendersEnabled) throw new AppError(503, 'renders_disabled', 'Rendering is temporarily disabled');
     this.rateLimit(principal);
     const snap = await this.assets.snapshot();
@@ -151,7 +160,7 @@ export class RenderService {
     if (!entry) throw new AppError(404, 'template_not_found', 'Unknown or disabled template');
     const { t, files } = await this.load(snap, entry);
     const r = this.renderable(t);
-    if (!r.ok) throw new AppError(t.output.animated || t.output.mime !== 'image/png' ? 501 : 503, 'template_unavailable', r.reason!);
+    if (!r.ok) throw new AppError(503, 'template_unavailable', r.reason!);
 
     // texts
     if (input.texts.length < t.inputs.texts.min || input.texts.length > t.inputs.texts.max) {
@@ -216,10 +225,8 @@ export class RenderService {
       throw new AppError(400, 'invalid_images', `images must have ${t.inputs.images.min}..${t.inputs.images.max} items`);
     }
 
-    const svg = composeSvg(t, files, texts, images, this.renderer.fonts);
-    const fontIds = t.layers.filter((l, _i) => l.type === 'text' && texts[(l as { slot: number }).slot]).map((l) => (l as { font: string }).font);
-    const png = await this.renderer.render(svg, fontIds);
-    if (png.length > Math.min(OUTPUT_MAX, t.output.maxBytes)) throw new AppError(422, 'output_too_large', 'Rendered image exceeds output limit');
-    return { png, template: `${t.id}@${t.version}` };
+    const rendered = await this.renderer.renderTemplate(t, files, texts, images, input.params);
+    if (rendered.bytes.length > Math.min(OUTPUT_MAX, t.output.maxBytes)) throw new AppError(422, 'output_too_large', 'Rendered image exceeds output limit');
+    return { bytes: rendered.bytes, mime: rendered.mime, template: `${t.id}@${t.version}` };
   }
 }

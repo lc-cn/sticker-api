@@ -222,13 +222,34 @@ export function validateRepo(root, opts = {}) {
       if (info.mime) for (const pr of budgetProblems(info, limits)) err(p, pr);
     }
     if (t.inputs.texts.min > t.inputs.texts.max || t.inputs.images.min > t.inputs.images.max) err(f, 'inputs min > max');
+    const anim = t.animation;
+    if (anim) {
+      if (t.output.mime !== 'image/gif' || !t.output.animated) err(f, 'animation 要求 output.mime=image/gif 且 animated=true');
+      for (const l of t.layers) {
+        if (typeof l.frame === 'number' && l.frame >= anim.frameCount) err(f, `图层 frame ${l.frame} 超出 animation.frameCount`);
+        if (l.keyframes && l.keyframes.length > anim.frameCount) err(f, 'keyframes 长于 animation.frameCount');
+        if (l.type === 'image-sequence' && l.files.length > anim.frameCount) err(f, 'image-sequence 帧数大于 animation.frameCount');
+      }
+    } else if (t.output.animated || t.output.mime === 'image/gif') {
+      err(f, '动图输出必须声明 animation');
+    }
+    if (t.canvas.fit && t.canvas.fit.slot >= t.inputs.images.max) err(f, `canvas.fit.slot 超出 inputs.images.max`);
     for (const l of t.layers) {
       if (l.type === 'image' && !declared.has(l.file)) err(f, `图层引用未声明文件 ${l.file}`);
+      if (l.type === 'image-sequence') {
+        for (const file of l.files) if (!declared.has(file)) err(f, `图层引用未声明文件 ${file}`);
+        if (!anim) err(f, 'image-sequence 只能用于带 animation 的模板');
+      }
       if (l.type === 'text' && l.slot >= t.inputs.texts.max) err(f, `文字槽 ${l.slot} 超出 inputs.texts.max`);
       if (l.type === 'text' && l.minFontSize > l.fontSize) err(f, 'minFontSize > fontSize');
       if (l.type === 'text' && !t.fonts.some((x) => x.id === l.font)) err(f, `字体 ${l.font} 未在 fonts 声明`);
       if (l.type === 'slot-image' && l.slot >= t.inputs.images.max) err(f, `图片槽 ${l.slot} 超出 inputs.images.max`);
-      if (l.box.x + l.box.w > t.canvas.width || l.box.y + l.box.h > t.canvas.height) err(f, '图层超出画布');
+      // Boxes may extend past the canvas (or be negative) and are clipped at render time.
+      // Variable-canvas templates (canvas.fit) resolve size at render time, so skip a hard overflow check.
+      if (!t.canvas.fit && l.box && !l.fill) {
+        const bw = l.box.w, bh = l.box.h;
+        if (bw < 1 || bh < 1) err(f, '图层尺寸无效');
+      }
     }
     for (const lid of [...t.licenseIds, ...t.fonts.map((x) => x.licenseId)]) if (!licenses.has(lid)) err(f, `licenseId ${lid} 不存在`);
     if (t.canvas.width * t.canvas.height > limits.maxCanvasPixels) err(f, '模板画布超出像素预算');

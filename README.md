@@ -23,7 +23,7 @@ src/services/collect.ts 采集来源（A config/collect-sources.json）、触发
 src/http/               client-ip（可信代理才读转发头）、rate-limit（内存滑动窗口）
 src/repo/               HEAD 缓存、Snapshot(单 commit + 读预算 + LRU)、sync-read 适配、Publisher(Git Data API)
 src/services/assets.ts  读/搜/内容 302/上传/修改/审核/墓碑/操作回执 + 幂等
-src/services/renders.ts 轻量模板渲染（A 的 light-v1 模板 → SVG → resvg-wasm，worker 硬超时）
+src/services/renders.ts 轻量模板渲染（A 的 light-v1 模板 → SVG/帧动画 → resvg-wasm，GIF 由 gifenc 编码，worker 硬超时）
 src/domain/             图片校验与隐私元数据剥离、元数据解析、幂等键
 src/github/             App JWT → installation token（仅 A 仓库、contents:write）、仓库客户端
 vendor/sticker-assets/  A 的 lib/schemas/config/fixtures/CONTRACT（只读副本，不手改）
@@ -46,7 +46,7 @@ tests/                  fake GitHub（本地 127.0.0.1:0）+ 28 个测试；scri
 - `PATCH /v1/assets/{id}`、`POST /v1/assets/{id}/review`（`assets:moderate`，必须 `If-Match`）
 - `DELETE /v1/assets/{id}?reason=rights|privacy|quality|duplicate|policy|other`（`assets:moderate`，墓碑）
 - `GET /v1/operations/{op}`（`operations:read`，机器需带原 `Idempotency-Key`）
-- `POST /v1/renders`（`render`，JSON 或 multipart `request` + `image`）→ image/png
+- `POST /v1/renders`（`render`，JSON 或 multipart `request` + `image`）→ image/png 或 image/gif
 - `GET /v1/collect/sources`、`GET /v1/collect-runs`、`POST /v1/collect-runs`（`collect:trigger` 或管理员会话 + CSRF）
   → 触发 A 的 `collect.yml`（workflow_dispatch，输入 `source`、`dry_run`），列出最近运行；同一来源冷却 `COLLECT_COOLDOWN_SECONDS`（默认 300 秒）
 

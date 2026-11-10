@@ -77,8 +77,8 @@ paths:
       summary: Render PNG (JSON or multipart)
       description: |
         Body `{template, texts?, params?, assetIds?, imageUrls?}` or multipart `request`+`image`.
-        Response is raw `image/png` (not JSON). Auth token or anonymous when publicRenders enabled.
-      responses: { "200": { description: image/png } }
+        Response is raw `image/png` or `image/gif` (not JSON). Auth token or anonymous when publicRenders enabled.
+      responses: { "200": { description: "image/png or image/gif" } }
   /v1/assets/batch:
     post:
       summary: Batch upload (auth)

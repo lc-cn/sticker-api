@@ -35,12 +35,12 @@
       "properties": {
         "x": {
           "type": "integer",
-          "minimum": 0,
+          "minimum": -2048,
           "maximum": 2048
         },
         "y": {
           "type": "integer",
-          "minimum": 0,
+          "minimum": -2048,
           "maximum": 2048
         },
         "w": {
@@ -62,6 +62,99 @@
     "relPath": {
       "type": "string",
       "pattern": "^[a-z0-9][a-z0-9_-]{0,47}\\.(png|jpg|gif)$"
+    },
+    "quad": {
+      "description": "Perspective dest corners in local source space, order TL→TR→BR→BL (same as pil-utils). May extend outside the source.",
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": {
+          "type": "number",
+          "minimum": -4096,
+          "maximum": 4096
+        }
+      }
+    },
+    "when": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "param",
+        "in"
+      ],
+      "properties": {
+        "param": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9]{0,23}$"
+        },
+        "in": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": [
+              "string",
+              "integer",
+              "boolean"
+            ]
+          }
+        }
+      }
+    },
+    "flip": {
+      "type": "string",
+      "enum": [
+        "horizontal",
+        "vertical",
+        "both"
+      ]
+    },
+    "fromX": {
+      "type": "string",
+      "enum": [
+        "left",
+        "right"
+      ],
+      "default": "left"
+    },
+    "fromY": {
+      "type": "string",
+      "enum": [
+        "top",
+        "bottom"
+      ],
+      "default": "top"
+    },
+    "keyframe": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "box": {
+              "$ref": "#/$defs/box"
+            },
+            "rotate": {
+              "type": "number",
+              "minimum": -3600,
+              "maximum": 3600
+            },
+            "quad": {
+              "$ref": "#/$defs/quad"
+            },
+            "visible": {
+              "type": "boolean"
+            }
+          }
+        }
+      ]
     }
   },
   "properties": {
@@ -262,13 +355,68 @@
               "type": "null"
             }
           ]
+        },
+        "fit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "slot",
+            "mode"
+          ],
+          "description": "Size the canvas from a slot image at render time. width/height on canvas are the default/target; fit clamps the resolved size.",
+          "properties": {
+            "slot": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "contain",
+                "cover",
+                "width",
+                "height"
+              ]
+            },
+            "width": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2048
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2048
+            },
+            "minWidth": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2048
+            },
+            "maxWidth": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2048
+            },
+            "minHeight": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2048
+            },
+            "maxHeight": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2048
+            }
+          }
         }
       }
     },
     "layers": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 16,
+      "maxItems": 32,
       "items": {
         "oneOf": [
           {
@@ -288,6 +436,28 @@
               },
               "box": {
                 "$ref": "#/$defs/box"
+              },
+              "frame": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 23,
+                "description": "Only draw on this animation frame; omit to draw on every frame (unless keyframes hide it)."
+              },
+              "flip": {
+                "$ref": "#/$defs/flip"
+              },
+              "when": {
+                "$ref": "#/$defs/when"
+              },
+              "xFrom": {
+                "$ref": "#/$defs/fromX"
+              },
+              "yFrom": {
+                "$ref": "#/$defs/fromY"
+              },
+              "fill": {
+                "type": "boolean",
+                "description": "Stretch this layer to the resolved canvas (variable-canvas templates)."
               }
             }
           },
@@ -321,8 +491,8 @@
               },
               "rotate": {
                 "type": "number",
-                "minimum": -180,
-                "maximum": 180,
+                "minimum": -3600,
+                "maximum": 3600,
                 "description": "Degrees clockwise around box center; omit or 0 for none"
               },
               "clip": {
@@ -333,6 +503,40 @@
                 ],
                 "default": "rect",
                 "description": "Clip slot image to rectangle (default) or inscribed circle"
+              },
+              "quad": {
+                "$ref": "#/$defs/quad"
+              },
+              "keyframes": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 24,
+                "items": {
+                  "$ref": "#/$defs/keyframe"
+                },
+                "description": "Per-frame box/rotate/quad/visibility. A null entry hides the slot on that frame. Missing trailing frames are hidden."
+              },
+              "frame": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 23,
+                "description": "Only draw on this animation frame; omit to draw on every frame (unless keyframes hide it)."
+              },
+              "flip": {
+                "$ref": "#/$defs/flip"
+              },
+              "when": {
+                "$ref": "#/$defs/when"
+              },
+              "xFrom": {
+                "$ref": "#/$defs/fromX"
+              },
+              "yFrom": {
+                "$ref": "#/$defs/fromY"
+              },
+              "fill": {
+                "type": "boolean",
+                "description": "Stretch this layer to the resolved canvas (variable-canvas templates)."
               }
             }
           },
@@ -424,6 +628,67 @@
               },
               "wrap": {
                 "type": "boolean"
+              },
+              "frame": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 23
+              },
+              "when": {
+                "$ref": "#/$defs/when"
+              },
+              "xFrom": {
+                "$ref": "#/$defs/fromX"
+              },
+              "yFrom": {
+                "$ref": "#/$defs/fromY"
+              },
+              "rotate": {
+                "type": "number",
+                "minimum": -3600,
+                "maximum": 3600
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "files",
+              "box"
+            ],
+            "properties": {
+              "type": {
+                "const": "image-sequence"
+              },
+              "files": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 24,
+                "items": {
+                  "$ref": "#/$defs/relPath"
+                },
+                "description": "files[i] is drawn on animation frame i, in the same box."
+              },
+              "box": {
+                "$ref": "#/$defs/box"
+              },
+              "flip": {
+                "$ref": "#/$defs/flip"
+              },
+              "when": {
+                "$ref": "#/$defs/when"
+              },
+              "xFrom": {
+                "$ref": "#/$defs/fromX"
+              },
+              "yFrom": {
+                "$ref": "#/$defs/fromY"
+              },
+              "fill": {
+                "type": "boolean",
+                "description": "Stretch this layer to the resolved canvas (variable-canvas templates)."
               }
             }
           }
@@ -432,7 +697,7 @@
     },
     "files": {
       "type": "array",
-      "maxItems": 8,
+      "maxItems": 48,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -462,7 +727,8 @@
             "type": "string",
             "enum": [
               "base",
-              "overlay"
+              "overlay",
+              "frame"
             ]
           }
         }
@@ -548,6 +814,34 @@
         }
       },
       "description": "机读来源（不面向展示）。MIT 权利说明见 licenses/meme-generator-mit.json。"
+    },
+    "animation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frameCount",
+        "frameDurationMs"
+      ],
+      "description": "When present, the template is rendered once per frame and encoded as a GIF. output.mime must be image/gif and output.animated true.",
+      "properties": {
+        "frameCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 24
+        },
+        "frameDurationMs": {
+          "type": "integer",
+          "minimum": 20,
+          "maximum": 1000
+        },
+        "loop": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535,
+          "default": 0,
+          "description": "0 = loop forever"
+        }
+      }
     }
   }
 }

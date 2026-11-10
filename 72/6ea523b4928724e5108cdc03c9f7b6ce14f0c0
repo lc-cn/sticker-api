@@ -1,0 +1,25 @@
+package.json
+  s_a467b02185c88e::t_2e09efcf7cbb2c 22-25
+pnpm-lock.yaml
+  s_a467b02185c88e::t_1c8291980c85bc 17-19,23-28,111-113,129-131,136-141,146-148,312-316,347-348,355-358,361-362
+src/render/warp.ts
+  s_a467b02185c88e::t_03438a1d53039b 1-111
+tests/render.test.ts
+  s_a467b02185c88e::t_ed850925e2e20d 130-238
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "726ea523b4928724e5108cdc03c9f7b6ce14f0c0",
+  "prompts": {},
+  "sessions": {
+    "s_a467b02185c88e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0319c-34d0-7a61-a360-f3203f30d70a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Class Liu <chunlang.liu@rdc-west.com>"
+    }
+  }
+}

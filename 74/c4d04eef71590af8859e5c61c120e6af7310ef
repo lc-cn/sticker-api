@@ -1,0 +1,24 @@
+src/render/renderer.ts
+  h_b64ebe5d3c7815 39,105-110
+tests/render.test.ts
+  h_b64ebe5d3c7815 110-129
+vendor/sticker-assets/VERSION.json
+  h_b64ebe5d3c7815 3,5,31,34
+vendor/sticker-assets/config/collect-sources.json
+  h_b64ebe5d3c7815 4,21-22
+vendor/sticker-assets/schemas.mjs
+  h_b64ebe5d3c7815 2
+vendor/sticker-assets/schemas/v1/template.schema.json
+  h_b64ebe5d3c7815 321-335
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "74c4d04eef71590af8859e5c61c120e6af7310ef",
+  "prompts": {},
+  "humans": {
+    "h_b64ebe5d3c7815": {
+      "author": "Class Liu <chunlang.liu@rdc-west.com>"
+    }
+  }
+}

@@ -1,0 +1,60 @@
+package.json
+  s_a467b02185c88e::t_2e09efcf7cbb2c 22-25
+src/render/warp.ts
+  s_a467b02185c88e::t_03438a1d53039b 1-111
+pnpm-lock.yaml
+  s_a467b02185c88e::t_1c8291980c85bc 17-19,23-28,111-113,129-131,136-141,146-148,312-316,347-348,355-358,361-362
+README.md
+  h_b64ebe5d3c7815 26,49
+tests/render.test.ts
+  s_a467b02185c88e::t_ed850925e2e20d 130-238
+openapi.yaml
+  h_b64ebe5d3c7815 80-81
+src/config.ts
+  h_b64ebe5d3c7815 279
+src/render/gif.ts
+  h_b64ebe5d3c7815 1-115
+src/render/pixels.ts
+  h_b64ebe5d3c7815 1-141
+src/render/renderer.ts
+  h_b64ebe5d3c7815 8-10,29-78,89-91,142-244,248-260,263-273,278-279,281,283-301,307-370,405-407,413,418,421,430-452
+src/render/worker.ts
+  h_b64ebe5d3c7815 1,5,11-21
+src/repo/snapshot.ts
+  h_b64ebe5d3c7815 64-66
+src/routes/api.ts
+  h_b64ebe5d3c7815 271
+src/services/renders.ts
+  h_b64ebe5d3c7815 8,38-45,74,79-81,87,127-128,131,154,163,228-230
+vendor/sticker-assets/CONTRACT.md
+  h_b64ebe5d3c7815 191
+vendor/sticker-assets/VERSION.json
+  h_b64ebe5d3c7815 3,5,19,31,33
+vendor/sticker-assets/lib/validator.mjs
+  h_b64ebe5d3c7815 225-236,239-242,247-252
+vendor/sticker-assets/schemas.mjs
+  h_b64ebe5d3c7815 2
+vendor/sticker-assets/schemas/v1/template.schema.json
+  h_b64ebe5d3c7815 38,43,65-157,358-412,419,439-460,494-495,506-539,631-691,700,730-731,817-844
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "eb0f83314ea25c8b37d816d965ba52650cee5f5d",
+  "prompts": {},
+  "humans": {
+    "h_b64ebe5d3c7815": {
+      "author": "Class Liu <chunlang.liu@rdc-west.com>"
+    }
+  },
+  "sessions": {
+    "s_a467b02185c88e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0319c-34d0-7a61-a360-f3203f30d70a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Class Liu <chunlang.liu@rdc-west.com>"
+    }
+  }
+}

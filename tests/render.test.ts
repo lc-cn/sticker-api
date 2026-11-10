@@ -107,3 +107,23 @@ test('render rate limit and text layout helpers', async () => {
   assert.equal(l.lines.length, 1);
   assert.ok(l.lines[0]!.endsWith('…') || l.size < 32);
 });
+
+test('composeSvg supports slot-image rotate and circle clip', async () => {
+  const { composeSvg } = await import('../src/render/renderer.js');
+  const tiny = makePng(8, 8);
+  const t: any = {
+    id: 't', version: 1, title: 't', status: 'active', renderer: 'light-v1',
+    inputs: { texts: { min: 0, max: 0, maxLength: 1 }, images: { min: 1, max: 1 } },
+    params: [], output: { mime: 'image/png', animated: false, maxBytes: 2097152 },
+    canvas: { width: 100, height: 100, background: '#ffffff' },
+    layers: [
+      { type: 'slot-image', slot: 0, box: { x: 10, y: 10, w: 40, h: 40 }, fit: 'cover', rotate: -10, clip: 'circle' },
+    ],
+    files: [], fonts: [{ id: 'default-sans', licenseId: 'ofl-1-1', providedBy: 'renderer' }],
+    licenseIds: [], notice: '',
+  };
+  const svg = composeSvg(t, new Map(), [], [{ mime: 'image/png', bytes: tiny, width: 8, height: 8 } as any], new Map());
+  assert.match(svg, /rotate\(-10 /);
+  assert.match(svg, /<circle /);
+  assert.match(svg, /clipPath/);
+});

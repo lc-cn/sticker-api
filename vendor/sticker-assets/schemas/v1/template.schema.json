@@ -318,6 +318,21 @@
                   "contain",
                   "cover"
                 ]
+              },
+              "rotate": {
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180,
+                "description": "Degrees clockwise around box center; omit or 0 for none"
+              },
+              "clip": {
+                "type": "string",
+                "enum": [
+                  "rect",
+                  "circle"
+                ],
+                "default": "rect",
+                "description": "Clip slot image to rectangle (default) or inscribed circle"
               }
             }
           },

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "workflow": "collect.yml",
-  "note": "采集来源登记表。B 的管理后台读取本文件列出来源，并以 workflow_dispatch(source=<id>) 触发 collect.yml。approved=false 的来源只跑占位脚本（不联网、不写仓库）。",
+  "note": "采集来源登记表。B 的管理后台读取本文件列出来源，并以 workflow_dispatch(source=<id>) 触发 collect.yml。approved=false 的来源只跑占位逻辑（不联网、不写仓库）。本地：node scripts/collect.mjs --source <id> --mirror <dir> [--upload]。",
   "sources": [
     {
       "id": "bilibili",
@@ -18,8 +18,8 @@
     {
       "id": "chinesebqb",
       "label": "ChineseBQB（经典备用源）",
-      "approved": false,
-      "description": "zhaoolee/ChineseBQB 经典表情包，仅作备用源。尚未批准，占位。"
+      "approved": true,
+      "description": "zhaoolee/ChineseBQB 开源合集。适配器 scripts/adapters/chinesebqb.mjs：优先读本地镜像（--mirror / COLLECT_MIRROR），跳过封面与超大文件；正式上传走 B 的 /v1/assets/batch。许可记录 zhaoolee-chinesebqb（非 CC0）。"
     }
   ]
 }

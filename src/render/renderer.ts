@@ -36,7 +36,7 @@ export type LightTemplate = {
   canvas: { width: number; height: number; background: string | null };
   layers: Array<
     | { type: 'image'; file: string; box: Box }
-    | { type: 'slot-image'; slot: number; box: Box; fit: 'contain' | 'cover' }
+    | { type: 'slot-image'; slot: number; box: Box; fit: 'contain' | 'cover'; rotate?: number; clip?: 'rect' | 'circle' }
     | { type: 'text'; slot: number; box: Box; font: string; fontSize: number; minFontSize: number; color: string; stroke: { color: string; width: number } | null; align: 'left' | 'center' | 'right'; valign: 'top' | 'middle' | 'bottom'; wrap: boolean }
   >;
   files: Array<{ path: string; sha256: string; bytes: number; mime: string; role: string }>;
@@ -102,8 +102,12 @@ export function composeSvg(t: LightTemplate, assets: Map<string, Buffer>, texts:
     } else if (l.type === 'slot-image') {
       const img = images[l.slot];
       if (!img) return;
-      out.push(`<clipPath id="c${i}"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}"/></clipPath>`);
-      out.push(`<image clip-path="url(#c${i})" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" preserveAspectRatio="xMidYMid ${l.fit === 'cover' ? 'slice' : 'meet'}" href="${dataUri(img.mime, img.bytes)}"/>`);
+      const clip = l.clip === 'circle'
+        ? `<circle cx="${b.x + b.w / 2}" cy="${b.y + b.h / 2}" r="${Math.min(b.w, b.h) / 2}"/>`
+        : `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}"/>`;
+      out.push(`<clipPath id="c${i}">${clip}</clipPath>`);
+      const rot = typeof l.rotate === 'number' && l.rotate !== 0 ? ` transform="rotate(${l.rotate} ${b.x + b.w / 2} ${b.y + b.h / 2})"` : '';
+      out.push(`<g${rot}><image clip-path="url(#c${i})" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" preserveAspectRatio="xMidYMid ${l.fit === 'cover' ? 'slice' : 'meet'}" href="${dataUri(img.mime, img.bytes)}"/></g>`);
     } else {
       const txt = texts[l.slot];
       if (!txt) return;
